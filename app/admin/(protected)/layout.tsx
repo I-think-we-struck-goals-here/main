@@ -35,9 +35,11 @@ export default async function AdminLayout({
             <Link className="hover:text-white" href="/admin/payments/new">
               Log payment
             </Link>
-            <Link className="hover:text-white" href="/admin/logout">
-              Log out
-            </Link>
+            <form action="/admin/logout" method="post">
+              <button type="submit" className="hover:text-white">
+                Log out
+              </button>
+            </form>
           </nav>
         </header>
         {children}
