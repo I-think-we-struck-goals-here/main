@@ -11,7 +11,8 @@ import { verifyPassword } from "./password";
 
 const SESSION_COOKIE = "admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
-const SESSION_SAMESITE: "lax" | "strict" | "none" = "lax";
+const SESSION_SAMESITE: "lax" | "strict" | "none" =
+  process.env.NODE_ENV === "production" ? "none" : "lax";
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_ATTEMPTS = 5;
 
