@@ -1,8 +1,6 @@
-"use server";
-
+import { NextResponse } from "next/server";
 import { eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import { seasons } from "@/db/schema";
@@ -23,14 +21,33 @@ const parseDate = (value: FormDataEntryValue | null) => {
   return text.length ? text : null;
 };
 
-const ensureAdmin = async () => {
-  if (!(await requireAdminSession())) {
-    redirect("/admin/login");
-  }
-};
+const redirectTo = (request: Request, path: string) =>
+  NextResponse.redirect(new URL(path, request.url), 303);
 
-export const createSeason = async (formData: FormData) => {
-  await ensureAdmin();
+export const POST = async (request: Request) => {
+  if (!(await requireAdminSession())) {
+    return redirectTo(request, "/admin/login");
+  }
+
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "create");
+
+  if (intent === "activate") {
+    const seasonId = Number(formData.get("seasonId"));
+    if (!Number.isFinite(seasonId)) {
+      return redirectTo(request, "/admin/seasons?error=missing");
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.update(seasons).set({ isActive: false });
+      await tx.update(seasons).set({ isActive: true }).where(eq(seasons.id, seasonId));
+    });
+
+    revalidatePath("/admin/seasons");
+    revalidatePath("/");
+    return redirectTo(request, "/admin/seasons");
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const slug = normalizeSlug(String(formData.get("slug") ?? ""));
   const startDate = parseDate(formData.get("startDate"));
@@ -38,7 +55,7 @@ export const createSeason = async (formData: FormData) => {
   const isActive = formData.get("isActive") === "on";
 
   if (!name || !slug) {
-    redirect("/admin/seasons?error=missing");
+    return redirectTo(request, "/admin/seasons?error=missing");
   }
 
   let created: { id: number } | undefined;
@@ -56,7 +73,7 @@ export const createSeason = async (formData: FormData) => {
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error) {
       if ((error as { code?: string }).code === "23505") {
-        redirect("/admin/seasons?error=duplicate");
+        return redirectTo(request, "/admin/seasons?error=duplicate");
       }
     }
     throw error;
@@ -71,22 +88,5 @@ export const createSeason = async (formData: FormData) => {
 
   revalidatePath("/admin/seasons");
   revalidatePath("/");
-  redirect("/admin/seasons");
-};
-
-export const setActiveSeason = async (formData: FormData) => {
-  await ensureAdmin();
-  const seasonId = Number(formData.get("seasonId"));
-  if (!Number.isFinite(seasonId)) {
-    redirect("/admin/seasons?error=missing");
-  }
-
-  await db.transaction(async (tx) => {
-    await tx.update(seasons).set({ isActive: false });
-    await tx.update(seasons).set({ isActive: true }).where(eq(seasons.id, seasonId));
-  });
-
-  revalidatePath("/admin/seasons");
-  revalidatePath("/");
-  redirect("/admin/seasons");
+  return redirectTo(request, "/admin/seasons");
 };

@@ -3,7 +3,6 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { appearances, matches, players, seasons } from "@/db/schema";
 
-import { createMatch } from "./actions";
 import MatchForm from "./MatchForm";
 
 export const dynamic = "force-dynamic";
@@ -91,7 +90,7 @@ export default async function AdminNewMatchPage({
         </div>
       ) : null}
       <MatchForm
-        action={createMatch}
+        action="/admin/matches/new/submit"
         players={playerRows}
         seasons={seasonRows}
         defaultSeasonId={defaultSeason?.id}

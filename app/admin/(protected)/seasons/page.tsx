@@ -3,8 +3,6 @@ import { desc } from "drizzle-orm";
 import { db } from "@/db";
 import { seasons } from "@/db/schema";
 
-import { createSeason, setActiveSeason } from "./actions";
-
 export const dynamic = "force-dynamic";
 
 type AdminSeasonsPageProps = {
@@ -37,9 +35,11 @@ export default async function AdminSeasonsPage({
           </div>
         ) : null}
         <form
-          action={createSeason}
+          action="/admin/seasons/submit"
+          method="post"
           className="mt-4 grid gap-3 md:grid-cols-5"
         >
+          <input type="hidden" name="intent" value="create" />
           <input
             name="name"
             placeholder="Season name"
@@ -80,9 +80,11 @@ export default async function AdminSeasonsPage({
           {seasonRows.map((season) => (
             <form
               key={season.id}
-              action={setActiveSeason}
+              action="/admin/seasons/submit"
+              method="post"
               className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3"
             >
+              <input type="hidden" name="intent" value="activate" />
               <input type="hidden" name="seasonId" value={season.id} />
               <div>
                 <p className="text-base font-semibold">{season.name}</p>

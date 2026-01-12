@@ -3,8 +3,6 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { payments, players, seasons } from "@/db/schema";
 
-import { createPayment } from "./actions";
-
 export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentsPage() {
@@ -35,7 +33,8 @@ export default async function AdminPaymentsPage() {
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-semibold">Log payment</h2>
         <form
-          action={createPayment}
+          action="/admin/payments/new/submit"
+          method="post"
           className="mt-4 grid gap-3 md:grid-cols-2"
         >
           <label className="flex flex-col gap-2 text-sm text-white/70">

@@ -1,8 +1,6 @@
 import { db } from "@/db";
 import { players } from "@/db/schema";
 
-import { createPlayer, updatePlayer } from "./actions";
-
 export const dynamic = "force-dynamic";
 
 type AdminPlayersPageProps = {
@@ -38,9 +36,11 @@ export default async function AdminPlayersPage({
           </div>
         ) : null}
         <form
-          action={createPlayer}
+          action="/admin/players/submit"
+          method="post"
           className="mt-4 grid gap-3 md:grid-cols-3"
         >
+          <input type="hidden" name="intent" value="create" />
           <input
             name="displayName"
             placeholder="Display name"
@@ -67,9 +67,11 @@ export default async function AdminPlayersPage({
           {playerRows.map((player) => (
             <form
               key={player.id}
-              action={updatePlayer}
+              action="/admin/players/submit"
+              method="post"
               className="grid items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 md:grid-cols-4"
             >
+              <input type="hidden" name="intent" value="update" />
               <input type="hidden" name="playerId" value={player.id} />
               <input
                 name="displayName"

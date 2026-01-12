@@ -26,7 +26,7 @@ type MatchFormProps = {
   seasons: SeasonOption[];
   defaultSeasonId?: number;
   lastMatchPlayerIds: number[];
-  action: (formData: FormData) => void | Promise<void>;
+  action: string;
 };
 
 export default function MatchForm({
@@ -92,7 +92,7 @@ export default function MatchForm({
   };
 
   return (
-    <form action={action} className="flex flex-col gap-6">
+    <form action={action} method="post" className="flex flex-col gap-6">
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
