@@ -11,6 +11,7 @@ import { verifyPassword } from "./password";
 
 const SESSION_COOKIE = "admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+const SESSION_SAMESITE: "lax" | "strict" | "none" = "lax";
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_ATTEMPTS = 5;
 
@@ -31,12 +32,61 @@ const getSessionSecret = () => {
   return secret;
 };
 
+type AdminSessionCookie = {
+  name: string;
+  value: string;
+  options: {
+    httpOnly: true;
+    sameSite: "lax" | "strict" | "none";
+    secure: boolean;
+    maxAge: number;
+    expires: Date;
+    path: "/";
+  };
+};
+
+type AdminLoginResult =
+  | { ok: true; cookie: AdminSessionCookie }
+  | { ok: false; reason: "invalid" | "rate_limited" };
+
 const signSession = (issuedAt: number) => {
   return crypto
     .createHmac("sha256", getSessionSecret())
     .update(String(issuedAt))
     .digest("hex");
 };
+
+const buildSessionCookie = (): AdminSessionCookie => {
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const value = `${issuedAt}.${signSession(issuedAt)}`;
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000);
+
+  return {
+    name: SESSION_COOKIE,
+    value,
+    options: {
+      httpOnly: true,
+      sameSite: SESSION_SAMESITE,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: SESSION_MAX_AGE,
+      expires: expiresAt,
+      path: "/",
+    },
+  };
+};
+
+export const buildClearSessionCookie = (): AdminSessionCookie => ({
+  name: SESSION_COOKIE,
+  value: "",
+  options: {
+    httpOnly: true,
+    sameSite: SESSION_SAMESITE,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,
+    expires: new Date(0),
+    path: "/",
+  },
+});
 
 const verifySessionValue = (value: string) => {
   const [issuedAtRaw, signature] = value.split(".");
@@ -102,7 +152,9 @@ const clearAttempts = async (ip: string) => {
   await db.delete(adminLoginAttempts).where(eq(adminLoginAttempts.ip, ip));
 };
 
-export const attemptAdminLogin = async (password: string) => {
+export const attemptAdminLogin = async (
+  password: string
+): Promise<AdminLoginResult> => {
   const ip = await getClientIp();
   const now = Date.now();
   const existing = await getAttemptRecord(ip);
@@ -132,20 +184,10 @@ export const attemptAdminLogin = async (password: string) => {
   }
 
   await clearAttempts(ip);
-  const issuedAt = Math.floor(Date.now() / 1000);
-  const value = `${issuedAt}.${signSession(issuedAt)}`;
-  const cookieStore = await cookies();
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000);
-  cookieStore.set(SESSION_COOKIE, value, {
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: SESSION_MAX_AGE,
-    expires: expiresAt,
-    path: "/",
-  });
-
-  return { ok: true as const };
+  return {
+    ok: true as const,
+    cookie: buildSessionCookie(),
+  };
 };
 
 export const isAdminSession = async () => {
@@ -163,16 +205,4 @@ export const requireAdminSession = async () => {
     return false;
   }
   return true;
-};
-
-export const clearAdminSession = async () => {
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, "", {
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 0,
-    expires: new Date(0),
-    path: "/",
-  });
 };

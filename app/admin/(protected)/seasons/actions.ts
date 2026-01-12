@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import { seasons } from "@/db/schema";
+import { requireAdminSession } from "@/lib/admin-auth";
 
 const normalizeSlug = (value: string) =>
   value
@@ -22,7 +23,14 @@ const parseDate = (value: FormDataEntryValue | null) => {
   return text.length ? text : null;
 };
 
+const ensureAdmin = async () => {
+  if (!(await requireAdminSession())) {
+    redirect("/admin/login");
+  }
+};
+
 export const createSeason = async (formData: FormData) => {
+  await ensureAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const slug = normalizeSlug(String(formData.get("slug") ?? ""));
   const startDate = parseDate(formData.get("startDate"));
@@ -67,6 +75,7 @@ export const createSeason = async (formData: FormData) => {
 };
 
 export const setActiveSeason = async (formData: FormData) => {
+  await ensureAdmin();
   const seasonId = Number(formData.get("seasonId"));
   if (!Number.isFinite(seasonId)) {
     redirect("/admin/seasons?error=missing");

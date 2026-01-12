@@ -8,6 +8,7 @@ import { inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { appearances, matches, players } from "@/db/schema";
 import { poundsToPence, splitMatchCost } from "@/lib/money";
+import { requireAdminSession } from "@/lib/admin-auth";
 
 const parseNumber = (value: FormDataEntryValue | null, fallback = 0) => {
   const numeric = Number(value);
@@ -15,6 +16,9 @@ const parseNumber = (value: FormDataEntryValue | null, fallback = 0) => {
 };
 
 export const createMatch = async (formData: FormData) => {
+  if (!(await requireAdminSession())) {
+    redirect("/admin/login");
+  }
   const seasonId = Number(formData.get("seasonId"));
   const playedAtRaw = String(formData.get("playedAt") ?? "").trim();
   const opponent = String(formData.get("opponent") ?? "").trim();

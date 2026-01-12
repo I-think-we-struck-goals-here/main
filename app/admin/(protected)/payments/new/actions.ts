@@ -5,8 +5,12 @@ import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import { payments } from "@/db/schema";
+import { requireAdminSession } from "@/lib/admin-auth";
 
 export const createPayment = async (formData: FormData) => {
+  if (!(await requireAdminSession())) {
+    redirect("/admin/login");
+  }
   const playerId = Number(formData.get("playerId"));
   const seasonId = Number(formData.get("seasonId"));
   const amountGbp = String(formData.get("amountGbp") ?? "").trim();

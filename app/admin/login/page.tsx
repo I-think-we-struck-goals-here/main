@@ -1,7 +1,5 @@
 import Link from "next/link";
 
-import { loginAction } from "./actions";
-
 type AdminLoginPageProps = {
   searchParams?: { error?: string };
 };
@@ -34,7 +32,11 @@ export default function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
               {error}
             </div>
           ) : null}
-          <form action={loginAction} className="flex flex-col gap-4">
+          <form
+            action="/admin/login/submit"
+            method="post"
+            className="flex flex-col gap-4"
+          >
             <label className="text-sm text-white/70" htmlFor="password">
               Password
             </label>

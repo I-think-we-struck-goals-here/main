@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { players } from "@/db/schema";
+import { requireAdminSession } from "@/lib/admin-auth";
 
 const slugifyName = (value: string) =>
   value
@@ -17,7 +18,14 @@ const slugifyName = (value: string) =>
 
 const toBool = (value: FormDataEntryValue | null) => value === "on";
 
+const ensureAdmin = async () => {
+  if (!(await requireAdminSession())) {
+    redirect("/admin/login");
+  }
+};
+
 export const createPlayer = async (formData: FormData) => {
+  await ensureAdmin();
   const displayName = String(formData.get("displayName") ?? "").trim();
   const handle = slugifyName(displayName);
   const isActive = toBool(formData.get("isActive"));
@@ -47,6 +55,7 @@ export const createPlayer = async (formData: FormData) => {
 };
 
 export const updatePlayer = async (formData: FormData) => {
+  await ensureAdmin();
   const id = Number(formData.get("playerId"));
   const displayName = String(formData.get("displayName") ?? "").trim();
   const handle = slugifyName(displayName);
