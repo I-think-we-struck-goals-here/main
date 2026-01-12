@@ -33,16 +33,26 @@ export const createSeason = async (formData: FormData) => {
     redirect("/admin/seasons?error=missing");
   }
 
-  const [created] = await db
-    .insert(seasons)
-    .values({
-      name,
-      slug,
-      startDate,
-      endDate,
-      isActive,
-    })
-    .returning({ id: seasons.id });
+  let created: { id: number } | undefined;
+  try {
+    [created] = await db
+      .insert(seasons)
+      .values({
+        name,
+        slug,
+        startDate,
+        endDate,
+        isActive,
+      })
+      .returning({ id: seasons.id });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      if ((error as { code?: string }).code === "23505") {
+        redirect("/admin/seasons?error=duplicate");
+      }
+    }
+    throw error;
+  }
 
   if (isActive && created?.id) {
     await db

@@ -27,12 +27,21 @@ export const createPlayer = async (formData: FormData) => {
     redirect("/admin/players?error=missing");
   }
 
-  await db.insert(players).values({
-    displayName,
-    handle,
-    sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
-    isActive,
-  });
+  try {
+    await db.insert(players).values({
+      displayName,
+      handle,
+      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+      isActive,
+    });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      if ((error as { code?: string }).code === "23505") {
+        redirect("/admin/players?error=duplicate");
+      }
+    }
+    throw error;
+  }
 
   revalidatePath("/admin/players");
   revalidatePath("/");
@@ -50,15 +59,24 @@ export const updatePlayer = async (formData: FormData) => {
     redirect("/admin/players?error=missing");
   }
 
-  await db
-    .update(players)
-    .set({
-      displayName,
-      handle,
-      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
-      isActive,
-    })
-    .where(eq(players.id, id));
+  try {
+    await db
+      .update(players)
+      .set({
+        displayName,
+        handle,
+        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+        isActive,
+      })
+      .where(eq(players.id, id));
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      if ((error as { code?: string }).code === "23505") {
+        redirect("/admin/players?error=duplicate");
+      }
+    }
+    throw error;
+  }
 
   revalidatePath("/admin/players");
   revalidatePath("/");

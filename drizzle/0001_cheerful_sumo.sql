@@ -1,0 +1,1 @@
+ALTER TABLE "appearances" ADD COLUMN "match_share_pence" integer;

@@ -8,7 +8,26 @@ import MatchForm from "./MatchForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminNewMatchPage() {
+type AdminNewMatchPageProps = {
+  searchParams?: { error?: string; success?: string };
+};
+
+const ERROR_COPY: Record<string, string> = {
+  missing: "Add match details before saving.",
+  invalid_date: "Choose a valid date and time.",
+  invalid_cost: "Enter a valid match cost.",
+  no_players: "Add players before logging a match.",
+  none_played: "Select at least one player as played.",
+  save_failed: "Match save failed. Try again.",
+};
+
+export default async function AdminNewMatchPage({
+  searchParams,
+}: AdminNewMatchPageProps) {
+  const error = searchParams?.error
+    ? ERROR_COPY[searchParams.error]
+    : undefined;
+  const success = searchParams?.success ? "Match saved." : undefined;
   const seasonRows = await db
     .select()
     .from(seasons)
@@ -60,12 +79,24 @@ export default async function AdminNewMatchPage() {
   const defaultSeason = seasonRows.find((season) => season.isActive) ?? seasonRows[0];
 
   return (
-    <MatchForm
-      action={createMatch}
-      players={playerRows}
-      seasons={seasonRows}
-      defaultSeasonId={defaultSeason?.id}
-      lastMatchPlayerIds={lastMatchPlayerIds}
-    />
+    <div className="flex flex-col gap-4">
+      {error ? (
+        <div className="rounded-2xl border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-xs uppercase tracking-wide text-rose-100">
+          {error}
+        </div>
+      ) : null}
+      {success ? (
+        <div className="rounded-2xl border border-lime-300/40 bg-lime-400/10 px-4 py-3 text-xs uppercase tracking-wide text-lime-100">
+          {success}
+        </div>
+      ) : null}
+      <MatchForm
+        action={createMatch}
+        players={playerRows}
+        seasons={seasonRows}
+        defaultSeasonId={defaultSeason?.id}
+        lastMatchPlayerIds={lastMatchPlayerIds}
+      />
+    </div>
   );
 }

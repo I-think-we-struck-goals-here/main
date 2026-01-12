@@ -5,7 +5,21 @@ import { createPlayer, updatePlayer } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPlayersPage() {
+type AdminPlayersPageProps = {
+  searchParams?: { error?: string };
+};
+
+const ERROR_COPY: Record<string, string> = {
+  missing: "Add a name and handle before saving.",
+  duplicate: "That handle is already in use.",
+};
+
+export default async function AdminPlayersPage({
+  searchParams,
+}: AdminPlayersPageProps) {
+  const error = searchParams?.error
+    ? ERROR_COPY[searchParams.error]
+    : undefined;
   const playerRows = await db
     .select()
     .from(players)
@@ -18,6 +32,11 @@ export default async function AdminPlayersPage() {
         <p className="text-sm text-white/60">
           Fast-create a player profile for match logging and leaderboards.
         </p>
+        {error ? (
+          <div className="mt-4 rounded-2xl border border-amber-300/40 bg-amber-500/10 px-4 py-2 text-xs uppercase tracking-wide text-amber-100">
+            {error}
+          </div>
+        ) : null}
         <form
           action={createPlayer}
           className="mt-4 grid gap-3 md:grid-cols-4"

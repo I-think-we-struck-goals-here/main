@@ -7,7 +7,21 @@ import { createSeason, setActiveSeason } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSeasonsPage() {
+type AdminSeasonsPageProps = {
+  searchParams?: { error?: string };
+};
+
+const ERROR_COPY: Record<string, string> = {
+  missing: "Add a name and slug before saving.",
+  duplicate: "That season slug is already in use.",
+};
+
+export default async function AdminSeasonsPage({
+  searchParams,
+}: AdminSeasonsPageProps) {
+  const error = searchParams?.error
+    ? ERROR_COPY[searchParams.error]
+    : undefined;
   const seasonRows = await db
     .select()
     .from(seasons)
@@ -17,6 +31,11 @@ export default async function AdminSeasonsPage() {
     <div className="flex flex-col gap-8">
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-semibold">Create season</h2>
+        {error ? (
+          <div className="mt-4 rounded-2xl border border-amber-300/40 bg-amber-500/10 px-4 py-2 text-xs uppercase tracking-wide text-amber-100">
+            {error}
+          </div>
+        ) : null}
         <form
           action={createSeason}
           className="mt-4 grid gap-3 md:grid-cols-5"

@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { inArray } from "drizzle-orm";
+
 import { db } from "@/db";
-import { appearances, matches } from "@/db/schema";
+import { appearances, matches, players } from "@/db/schema";
+import { poundsToPence, splitMatchCost } from "@/lib/money";
 
 const parseNumber = (value: FormDataEntryValue | null, fallback = 0) => {
   const numeric = Number(value);
@@ -35,6 +38,41 @@ export const createMatch = async (formData: FormData) => {
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value));
 
+  if (playerIds.length === 0) {
+    redirect("/admin/matches/new?error=no_players");
+  }
+
+  const playedPlayerIds = playerIds.filter(
+    (playerId) => formData.get(`played-${playerId}`) === "on"
+  );
+
+  if (playedPlayerIds.length === 0) {
+    redirect("/admin/matches/new?error=none_played");
+  }
+
+  const playerRows = await db
+    .select({ id: players.id, handle: players.handle })
+    .from(players)
+    .where(inArray(players.id, playerIds));
+
+  const handleById = new Map(playerRows.map((row) => [row.id, row.handle]));
+  const playedWithHandles = playedPlayerIds.map((playerId) => ({
+    playerId,
+    handle: handleById.get(playerId) ?? String(playerId),
+  }));
+
+  const matchCostPence = poundsToPence(matchCostGbp);
+  if (!Number.isFinite(matchCostPence)) {
+    redirect("/admin/matches/new?error=invalid_cost");
+  }
+
+  const shareMap = new Map(
+    splitMatchCost(matchCostPence, playedWithHandles).map((share) => [
+      share.playerId,
+      share.sharePence,
+    ])
+  );
+
   const [createdMatch] = await db
     .insert(matches)
     .values({
@@ -52,8 +90,9 @@ export const createMatch = async (formData: FormData) => {
     redirect("/admin/matches/new?error=save_failed");
   }
 
+  const playedSet = new Set(playedPlayerIds);
   const appearanceRows = playerIds.map((playerId) => {
-    const played = formData.get(`played-${playerId}`) === "on";
+    const played = playedSet.has(playerId);
     const goals = parseNumber(formData.get(`goals-${playerId}`));
     const assists = parseNumber(formData.get(`assists-${playerId}`));
 
@@ -63,6 +102,7 @@ export const createMatch = async (formData: FormData) => {
       played,
       goals: played ? goals : 0,
       assists: played ? assists : 0,
+      matchSharePence: played ? shareMap.get(playerId) ?? null : null,
     };
   });
 

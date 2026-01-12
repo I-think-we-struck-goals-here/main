@@ -82,6 +82,7 @@ const buildOwedMap = async (seasonId?: number) => {
             playerId: appearances.playerId,
             played: appearances.played,
             handle: players.handle,
+            matchSharePence: appearances.matchSharePence,
           })
           .from(appearances)
           .innerJoin(matches, eq(matches.id, appearances.matchId))
@@ -93,6 +94,7 @@ const buildOwedMap = async (seasonId?: number) => {
             playerId: appearances.playerId,
             played: appearances.played,
             handle: players.handle,
+            matchSharePence: appearances.matchSharePence,
           })
           .from(appearances)
           .innerJoin(matches, eq(matches.id, appearances.matchId))
@@ -100,7 +102,10 @@ const buildOwedMap = async (seasonId?: number) => {
 
   const appearancesByMatch = new Map<
     number,
-    { costPence: number; players: { playerId: number; handle: string }[] }
+    {
+      costPence: number;
+      players: { playerId: number; handle: string; sharePence: number | null }[];
+    }
   >();
 
   for (const match of matchRows) {
@@ -121,12 +126,37 @@ const buildOwedMap = async (seasonId?: number) => {
     entry.players.push({
       playerId: appearance.playerId,
       handle: appearance.handle,
+      sharePence: appearance.matchSharePence ?? null,
     });
   }
 
   const owedMap = new Map<number, number>();
   for (const match of appearancesByMatch.values()) {
-    const shares = splitMatchCost(match.costPence, match.players);
+    if (match.players.length === 0) {
+      continue;
+    }
+
+    const allHaveShares = match.players.every(
+      (player) => player.sharePence !== null
+    );
+
+    if (allHaveShares) {
+      for (const player of match.players) {
+        owedMap.set(
+          player.playerId,
+          (owedMap.get(player.playerId) ?? 0) + (player.sharePence ?? 0)
+        );
+      }
+      continue;
+    }
+
+    const shares = splitMatchCost(
+      match.costPence,
+      match.players.map((player) => ({
+        playerId: player.playerId,
+        handle: player.handle,
+      }))
+    );
     for (const share of shares) {
       owedMap.set(
         share.playerId,

@@ -75,6 +75,7 @@ export const appearances = pgTable(
     played: boolean("played").notNull().default(false),
     goals: integer("goals").notNull().default(0),
     assists: integer("assists").notNull().default(0),
+    matchSharePence: integer("match_share_pence"),
   },
   (table) => ({
     matchPlayerUnique: uniqueIndex("appearances_match_player_unique").on(
