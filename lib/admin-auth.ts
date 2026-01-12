@@ -10,7 +10,7 @@ import { adminLoginAttempts } from "@/db/schema";
 import { verifyPassword } from "./password";
 
 const SESSION_COOKIE = "admin_session";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_ATTEMPTS = 5;
 
@@ -135,11 +135,13 @@ export const attemptAdminLogin = async (password: string) => {
   const issuedAt = Math.floor(Date.now() / 1000);
   const value = `${issuedAt}.${signSession(issuedAt)}`;
   const cookieStore = await cookies();
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000);
   cookieStore.set(SESSION_COOKIE, value, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: SESSION_MAX_AGE,
+    expires: expiresAt,
     path: "/",
   });
 
@@ -167,9 +169,10 @@ export const clearAdminSession = async () => {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, "", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: 0,
+    expires: new Date(0),
     path: "/",
   });
 };

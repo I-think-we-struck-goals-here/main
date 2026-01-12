@@ -36,7 +36,6 @@ export const players = pgTable(
     displayName: text("display_name").notNull(),
     handle: text("handle").notNull(),
     isActive: boolean("is_active").notNull().default(true),
-    sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
