@@ -2,6 +2,10 @@ import "server-only";
 
 import crypto from "crypto";
 import { cookies, headers } from "next/headers";
+import { eq } from "drizzle-orm";
+
+import { db } from "@/db";
+import { adminLoginAttempts } from "@/db/schema";
 
 import { verifyPassword } from "./password";
 
@@ -9,8 +13,6 @@ const SESSION_COOKIE = "admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_ATTEMPTS = 5;
-
-const loginAttempts = new Map<string, { count: number; firstAttemptMs: number }>();
 
 const getClientIp = async () => {
   const headerStore = await headers();
@@ -63,42 +65,53 @@ const verifySessionValue = (value: string) => {
   return ageSeconds >= 0 && ageSeconds <= SESSION_MAX_AGE;
 };
 
-const recordFailedAttempt = (ip: string) => {
-  const now = Date.now();
-  const existing = loginAttempts.get(ip);
-  if (!existing || now - existing.firstAttemptMs > RATE_LIMIT_WINDOW_MS) {
-    loginAttempts.set(ip, { count: 1, firstAttemptMs: now });
-    return;
-  }
-
-  loginAttempts.set(ip, {
-    count: existing.count + 1,
-    firstAttemptMs: existing.firstAttemptMs,
-  });
+const getAttemptRecord = async (ip: string) => {
+  const [record] = await db
+    .select()
+    .from(adminLoginAttempts)
+    .where(eq(adminLoginAttempts.ip, ip))
+    .limit(1);
+  return record ?? null;
 };
 
-const clearAttempts = (ip: string) => {
-  loginAttempts.delete(ip);
+const upsertAttemptRecord = async (
+  ip: string,
+  count: number,
+  firstAttemptAt: Date
+) => {
+  const now = new Date();
+  await db
+    .insert(adminLoginAttempts)
+    .values({
+      ip,
+      count,
+      firstAttemptAt,
+      lastAttemptAt: now,
+    })
+    .onConflictDoUpdate({
+      target: adminLoginAttempts.ip,
+      set: {
+        count,
+        firstAttemptAt,
+        lastAttemptAt: now,
+      },
+    });
 };
 
-const isRateLimited = (ip: string) => {
-  const existing = loginAttempts.get(ip);
-  if (!existing) {
-    return false;
-  }
-
-  if (Date.now() - existing.firstAttemptMs > RATE_LIMIT_WINDOW_MS) {
-    loginAttempts.delete(ip);
-    return false;
-  }
-
-  return existing.count >= RATE_LIMIT_MAX_ATTEMPTS;
+const clearAttempts = async (ip: string) => {
+  await db.delete(adminLoginAttempts).where(eq(adminLoginAttempts.ip, ip));
 };
 
 export const attemptAdminLogin = async (password: string) => {
   const ip = await getClientIp();
-  if (isRateLimited(ip)) {
-    return { ok: false, reason: "rate_limited" as const };
+  const now = Date.now();
+  const existing = await getAttemptRecord(ip);
+  if (existing) {
+    const firstAttemptAtMs = existing.firstAttemptAt.getTime();
+    const isWindowOpen = now - firstAttemptAtMs <= RATE_LIMIT_WINDOW_MS;
+    if (isWindowOpen && existing.count >= RATE_LIMIT_MAX_ATTEMPTS) {
+      return { ok: false, reason: "rate_limited" as const };
+    }
   }
 
   const storedHash = process.env.ADMIN_PASSWORD_HASH;
@@ -108,11 +121,17 @@ export const attemptAdminLogin = async (password: string) => {
 
   const isValid = verifyPassword(password, storedHash);
   if (!isValid) {
-    recordFailedAttempt(ip);
+    if (!existing) {
+      await upsertAttemptRecord(ip, 1, new Date(now));
+    } else if (now - existing.firstAttemptAt.getTime() > RATE_LIMIT_WINDOW_MS) {
+      await upsertAttemptRecord(ip, 1, new Date(now));
+    } else {
+      await upsertAttemptRecord(ip, existing.count + 1, existing.firstAttemptAt);
+    }
     return { ok: false, reason: "invalid" as const };
   }
 
-  clearAttempts(ip);
+  await clearAttempts(ip);
   const issuedAt = Math.floor(Date.now() / 1000);
   const value = `${issuedAt}.${signSession(issuedAt)}`;
   const cookieStore = await cookies();

@@ -2,6 +2,7 @@ import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 import {
   appearances,
+  adminLoginAttempts,
   externalLeagueSnapshots,
   matches,
   payments,
@@ -30,3 +31,6 @@ export type ExternalLeagueSnapshot = InferSelectModel<
 export type NewExternalLeagueSnapshot = InferInsertModel<
   typeof externalLeagueSnapshots
 >;
+
+export type AdminLoginAttempt = InferSelectModel<typeof adminLoginAttempts>;
+export type NewAdminLoginAttempt = InferInsertModel<typeof adminLoginAttempts>;

@@ -113,3 +113,14 @@ export const externalLeagueSnapshots = pgTable("external_league_snapshots", {
   status: text("status").notNull().default("ok"),
   statusMessage: text("status_message"),
 });
+
+export const adminLoginAttempts = pgTable("admin_login_attempts", {
+  ip: text("ip").primaryKey(),
+  count: integer("count").notNull().default(0),
+  firstAttemptAt: timestamp("first_attempt_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
