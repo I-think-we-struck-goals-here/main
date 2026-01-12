@@ -40,9 +40,6 @@ export default async function PublicLayout({
           </nav>
         </header>
         <main className="flex flex-1 flex-col gap-10">{children}</main>
-        <footer className="text-xs uppercase tracking-[0.25em] text-black/40">
-          Public balances are deliberate. Pay up.
-        </footer>
       </div>
     </div>
   );

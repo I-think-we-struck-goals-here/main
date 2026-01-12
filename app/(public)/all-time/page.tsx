@@ -1,5 +1,4 @@
-import LeaderboardTable from "@/components/LeaderboardTable";
-import LeaderboardTabs from "@/components/LeaderboardTabs";
+import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { getAllTimeLeaderboard } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +8,7 @@ type AllTimePageProps = {
 };
 
 const parseMetric = (value?: string) => {
-  if (value === "assists" || value === "games" || value === "owed") {
+  if (value === "assists" || value === "games") {
     return value;
   }
   return "goals";
@@ -31,12 +30,13 @@ export default async function AllTimePage({ searchParams }: AllTimePageProps) {
         <p className="mt-2 text-sm text-black/60">
           Totals across every season you have logged.
         </p>
-        <div className="mt-4">
-          <LeaderboardTabs baseHref="/all-time" active={metric} />
-        </div>
       </section>
 
-      <LeaderboardTable rows={leaderboard} metric={metric} />
+      <LeaderboardPanel
+        rows={leaderboard}
+        tabs={["goals", "assists", "games"]}
+        defaultMetric={metric}
+      />
     </div>
   );
 }

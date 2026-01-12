@@ -27,6 +27,8 @@ type MatchFormProps = {
   defaultSeasonId?: number;
   lastMatchPlayerIds: number[];
   action: string;
+  defaultOpponent?: string;
+  defaultPlayedAt?: string;
 };
 
 export default function MatchForm({
@@ -35,6 +37,8 @@ export default function MatchForm({
   defaultSeasonId,
   lastMatchPlayerIds,
   action,
+  defaultOpponent,
+  defaultPlayedAt,
 }: MatchFormProps) {
   const [rows, setRows] = useState<AppearanceRow[]>(() =>
     players.map((player) => ({
@@ -146,6 +150,7 @@ export default function MatchForm({
               name="playedAt"
               type="datetime-local"
               required
+              defaultValue={defaultPlayedAt}
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
             />
           </label>
@@ -154,6 +159,7 @@ export default function MatchForm({
             <input
               name="opponent"
               required
+              defaultValue={defaultOpponent}
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
             />
           </label>

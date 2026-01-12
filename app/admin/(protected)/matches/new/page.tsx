@@ -2,6 +2,12 @@ import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { appearances, matches, players, seasons } from "@/db/schema";
+import {
+  formatDateTimeLocal,
+  getNextFixtureForTeam,
+  getPlayFootballSnapshot,
+  isPlayFootballTeam,
+} from "@/lib/playfootball";
 
 import MatchForm from "./MatchForm";
 
@@ -76,6 +82,19 @@ export default async function AdminNewMatchPage({
   }
 
   const defaultSeason = seasonRows.find((season) => season.isActive) ?? seasonRows[0];
+  const playFootball = defaultSeason
+    ? await getPlayFootballSnapshot(defaultSeason)
+    : null;
+  const nextFixture = playFootball
+    ? getNextFixtureForTeam(playFootball.fixtures)
+    : null;
+  const defaultOpponent = nextFixture
+    ? isPlayFootballTeam(nextFixture.home)
+      ? nextFixture.away
+      : nextFixture.home
+    : undefined;
+  const defaultPlayedAt =
+    nextFixture?.kickoffAt ? formatDateTimeLocal(nextFixture.kickoffAt) : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -95,6 +114,8 @@ export default async function AdminNewMatchPage({
         seasons={seasonRows}
         defaultSeasonId={defaultSeason?.id}
         lastMatchPlayerIds={lastMatchPlayerIds}
+        defaultOpponent={defaultOpponent}
+        defaultPlayedAt={defaultPlayedAt}
       />
     </div>
   );

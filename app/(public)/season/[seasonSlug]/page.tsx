@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
-import LeaderboardTable from "@/components/LeaderboardTable";
-import LeaderboardTabs from "@/components/LeaderboardTabs";
+import LeaderboardPanel from "@/components/LeaderboardPanel";
 import { getSeasonBySlug, getSeasonLeaderboard } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -42,15 +41,13 @@ export default async function SeasonPage({
         <p className="mt-2 text-sm text-black/60">
           Choose a tab to sort the leaderboard.
         </p>
-        <div className="mt-4">
-          <LeaderboardTabs
-            baseHref={`/season/${season.slug}`}
-            active={metric}
-          />
-        </div>
       </section>
 
-      <LeaderboardTable rows={leaderboard} metric={metric} />
+      <LeaderboardPanel
+        rows={leaderboard}
+        tabs={["goals", "assists", "games", "owed"]}
+        defaultMetric={metric}
+      />
     </div>
   );
 }
