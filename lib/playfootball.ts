@@ -345,6 +345,25 @@ export const filterFixturesForTeam = (
   );
 };
 
+export const getFixtureOpponent = (
+  fixture: LeagueFixture,
+  season?: Season | null
+) => {
+  const teamName = getPlayFootballTeamName(season);
+  const normalizedTeam = normalizeTeamName(teamName);
+  const isHome = normalizeTeamName(fixture.home) === normalizedTeam;
+  const isAway = normalizeTeamName(fixture.away) === normalizedTeam;
+
+  if (isHome) {
+    return { opponent: fixture.away, venueLabel: "Home" };
+  }
+  if (isAway) {
+    return { opponent: fixture.home, venueLabel: "Away" };
+  }
+
+  return { opponent: `${fixture.home} vs ${fixture.away}`, venueLabel: "" };
+};
+
 const normalizeSnapshot = (
   snapshot: ExternalLeagueSnapshot
 ): PlayFootballSnapshot => {

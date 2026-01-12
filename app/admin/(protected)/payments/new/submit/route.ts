@@ -15,7 +15,6 @@ export const POST = async (request: Request) => {
   const seasonId = Number(formData.get("seasonId"));
   const amountGbp = String(formData.get("amountGbp") ?? "").trim();
   const note = String(formData.get("note") ?? "").trim();
-  const paidAtRaw = String(formData.get("paidAt") ?? "").trim();
 
   if (!Number.isFinite(playerId) || !Number.isFinite(seasonId) || !amountGbp) {
     return redirectTo(request, "/admin/payments/new?error=missing");
@@ -26,7 +25,7 @@ export const POST = async (request: Request) => {
     return redirectTo(request, "/admin/payments/new?error=invalid_amount");
   }
 
-  const paidAt = paidAtRaw ? new Date(paidAtRaw) : new Date();
+  const paidAt = new Date();
 
   await db.insert(payments).values({
     playerId,

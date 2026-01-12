@@ -77,6 +77,35 @@ export const POST = async (request: Request) => {
     return redirectTo(request, "/admin/seasons?sync=updated");
   }
 
+  if (intent === "update_details") {
+    const seasonId = Number(formData.get("seasonId"));
+    if (!Number.isFinite(seasonId)) {
+      return redirectTo(request, "/admin/seasons?error=missing");
+    }
+
+    const name = String(formData.get("name") ?? "").trim();
+    const startDate = parseDate(formData.get("startDate"));
+    const endDate = parseDate(formData.get("endDate"));
+
+    if (!name) {
+      return redirectTo(request, "/admin/seasons?error=missing");
+    }
+
+    await db
+      .update(seasons)
+      .set({
+        name,
+        startDate,
+        endDate,
+      })
+      .where(eq(seasons.id, seasonId));
+
+    revalidatePath("/admin/seasons");
+    revalidatePath("/");
+    revalidatePath("/league");
+    return redirectTo(request, "/admin/seasons?updated=details");
+  }
+
   if (intent === "refresh_playfootball") {
     const seasonId = Number(formData.get("seasonId"));
     if (!Number.isFinite(seasonId)) {

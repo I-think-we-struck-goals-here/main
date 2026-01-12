@@ -72,14 +72,6 @@ export default async function AdminPaymentsPage() {
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm text-white/70">
-            Paid at
-            <input
-              name="paidAt"
-              type="date"
-              className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
-            />
-          </label>
           <label className="flex flex-col gap-2 text-sm text-white/70 md:col-span-2">
             Note (optional, admin-only)
             <input

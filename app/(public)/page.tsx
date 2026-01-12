@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatSignedGbp } from "@/lib/money";
 import {
   filterFixturesForTeam,
+  getFixtureOpponent,
   getPlayFootballSnapshot,
   isPlayFootballTeam,
 } from "@/lib/playfootball";
@@ -131,24 +132,30 @@ export default async function HomePage() {
           </p>
           {upcomingFixtures.length ? (
             <div className="mt-4 flex flex-col gap-3 text-sm text-black/70">
-              {upcomingFixtures.map((fixture) => (
-                <div
-                  key={`${fixture.dateLabel}-${fixture.time}-${fixture.home}-${fixture.away}`}
-                  className="rounded-2xl border border-black/5 bg-black/[0.02] p-3"
-                >
-                  <p className="text-xs uppercase tracking-[0.2em] text-black/50">
-                    {fixture.dateLabel} · {fixture.time}
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-black">
-                    {fixture.home} vs {fixture.away}
-                  </p>
-                  {fixture.pitch ? (
-                    <p className="mt-1 text-xs text-black/50">
-                      {fixture.pitch}
+              {upcomingFixtures.map((fixture) => {
+                const { opponent, venueLabel } = getFixtureOpponent(
+                  fixture,
+                  activeSeason
+                );
+                return (
+                  <div
+                    key={`${fixture.dateLabel}-${fixture.time}-${fixture.home}-${fixture.away}`}
+                    className="rounded-2xl border border-black/5 bg-black/[0.02] p-3"
+                  >
+                    <p className="text-xs uppercase tracking-[0.2em] text-black/50">
+                      {fixture.dateLabel} · {fixture.time}
                     </p>
-                  ) : null}
-                </div>
-              ))}
+                    <p className="mt-2 text-sm font-semibold text-black">
+                      {opponent}
+                    </p>
+                    {venueLabel ? (
+                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-black/40">
+                        {venueLabel}
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="mt-4 text-sm text-black/60">

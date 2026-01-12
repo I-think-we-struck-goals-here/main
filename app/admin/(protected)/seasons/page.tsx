@@ -6,7 +6,7 @@ import { seasons } from "@/db/schema";
 export const dynamic = "force-dynamic";
 
 type AdminSeasonsPageProps = {
-  searchParams?: { error?: string; sync?: string };
+  searchParams?: { error?: string; sync?: string; updated?: string };
 };
 
 const ERROR_COPY: Record<string, string> = {
@@ -19,6 +19,10 @@ const SYNC_COPY: Record<string, string> = {
   refreshed: "PlayFootball snapshot refreshed.",
 };
 
+const UPDATED_COPY: Record<string, string> = {
+  details: "Season details saved.",
+};
+
 export default async function AdminSeasonsPage({
   searchParams,
 }: AdminSeasonsPageProps) {
@@ -27,6 +31,9 @@ export default async function AdminSeasonsPage({
     : undefined;
   const syncMessage = searchParams?.sync
     ? SYNC_COPY[searchParams.sync]
+    : undefined;
+  const updateMessage = searchParams?.updated
+    ? UPDATED_COPY[searchParams.updated]
     : undefined;
   const seasonRows = await db
     .select()
@@ -45,6 +52,11 @@ export default async function AdminSeasonsPage({
         {syncMessage ? (
           <div className="mt-4 rounded-2xl border border-lime-300/40 bg-lime-400/10 px-4 py-2 text-xs uppercase tracking-wide text-lime-100">
             {syncMessage}
+          </div>
+        ) : null}
+        {updateMessage ? (
+          <div className="mt-4 rounded-2xl border border-sky-300/40 bg-sky-400/10 px-4 py-2 text-xs uppercase tracking-wide text-sky-100">
+            {updateMessage}
           </div>
         ) : null}
         <form
@@ -131,6 +143,35 @@ export default async function AdminSeasonsPage({
                     Set active
                   </button>
                 </div>
+              </form>
+              <form
+                action="/admin/seasons/submit"
+                method="post"
+                className="grid gap-3 md:grid-cols-2"
+              >
+                <input type="hidden" name="intent" value="update_details" />
+                <input type="hidden" name="seasonId" value={season.id} />
+                <input
+                  name="name"
+                  defaultValue={season.name}
+                  placeholder="Season name"
+                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm md:col-span-2"
+                />
+                <input
+                  name="startDate"
+                  type="date"
+                  defaultValue={season.startDate ?? ""}
+                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm"
+                />
+                <input
+                  name="endDate"
+                  type="date"
+                  defaultValue={season.endDate ?? ""}
+                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm"
+                />
+                <button className="rounded-xl border border-white/10 px-3 py-2 text-xs uppercase tracking-wide text-white/80 hover:border-white/30 hover:text-white md:col-span-2">
+                  Save season details
+                </button>
               </form>
               <form
                 action="/admin/seasons/submit"
