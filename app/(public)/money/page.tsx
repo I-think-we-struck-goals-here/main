@@ -42,22 +42,22 @@ export default async function MoneyPage() {
         </p>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="rounded-[28px] border border-black/10 bg-white/80 p-6 shadow-sm">
         <div className="grid text-xs uppercase tracking-[0.2em] text-black/50">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3">
+          <div className="grid grid-cols-[minmax(0,12rem)_auto_auto] items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]">
             <span>Player</span>
             <span className="text-right">Owed</span>
             <span className="text-right">Settle</span>
           </div>
         </div>
-        <div className="grid gap-2 text-sm text-black/70">
+        <div className="mt-4 grid gap-2 text-sm text-black/70">
           {rows.map((row) => {
             const showPayButton = row.owedPence > 0;
             const showCredit = row.owedPence < 0;
             return (
               <div
                 key={row.playerId}
-                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-2xl border border-black/5 bg-white/70 px-3 py-3"
+                className="grid grid-cols-[minmax(0,12rem)_auto_auto] items-center gap-2 rounded-2xl border border-black/5 bg-white/70 px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto]"
               >
                 <Link
                   href={`/player/${row.handle}`}
