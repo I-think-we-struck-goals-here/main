@@ -21,12 +21,11 @@ const parseDate = (value: FormDataEntryValue | null) => {
   return text.length ? text : null;
 };
 
-const redirectTo = (request: Request, path: string) =>
-  NextResponse.redirect(new URL(path, request.url), 303);
+const redirectTo = (path: string) => NextResponse.redirect(path, 303);
 
 export const POST = async (request: Request) => {
   if (!(await requireAdminSession())) {
-    return redirectTo(request, "/admin/login");
+    return redirectTo("/admin/login");
   }
 
   const formData = await request.formData();
@@ -35,7 +34,7 @@ export const POST = async (request: Request) => {
   if (intent === "activate") {
     const seasonId = Number(formData.get("seasonId"));
     if (!Number.isFinite(seasonId)) {
-      return redirectTo(request, "/admin/seasons?error=missing");
+      return redirectTo("/admin/seasons?error=missing");
     }
 
     await db.transaction(async (tx) => {
@@ -45,7 +44,7 @@ export const POST = async (request: Request) => {
 
     revalidatePath("/admin/seasons");
     revalidatePath("/");
-    return redirectTo(request, "/admin/seasons");
+    return redirectTo("/admin/seasons");
   }
 
   const name = String(formData.get("name") ?? "").trim();
@@ -55,7 +54,7 @@ export const POST = async (request: Request) => {
   const isActive = formData.get("isActive") === "on";
 
   if (!name || !slug) {
-    return redirectTo(request, "/admin/seasons?error=missing");
+    return redirectTo("/admin/seasons?error=missing");
   }
 
   let created: { id: number } | undefined;
@@ -73,7 +72,7 @@ export const POST = async (request: Request) => {
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error) {
       if ((error as { code?: string }).code === "23505") {
-        return redirectTo(request, "/admin/seasons?error=duplicate");
+        return redirectTo("/admin/seasons?error=duplicate");
       }
     }
     throw error;
@@ -88,5 +87,5 @@ export const POST = async (request: Request) => {
 
   revalidatePath("/admin/seasons");
   revalidatePath("/");
-  return redirectTo(request, "/admin/seasons");
+  return redirectTo("/admin/seasons");
 };

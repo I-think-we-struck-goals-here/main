@@ -15,12 +15,11 @@ const slugifyName = (value: string) =>
 
 const toBool = (value: FormDataEntryValue | null) => value === "on";
 
-const redirectTo = (request: Request, path: string) =>
-  NextResponse.redirect(new URL(path, request.url), 303);
+const redirectTo = (path: string) => NextResponse.redirect(path, 303);
 
 export const POST = async (request: Request) => {
   if (!(await requireAdminSession())) {
-    return redirectTo(request, "/admin/login");
+    return redirectTo("/admin/login");
   }
 
   const formData = await request.formData();
@@ -33,7 +32,7 @@ export const POST = async (request: Request) => {
     const isActive = toBool(formData.get("isActive"));
 
     if (!Number.isFinite(id) || !displayName || !handle) {
-      return redirectTo(request, "/admin/players?error=missing");
+      return redirectTo("/admin/players?error=missing");
     }
 
     try {
@@ -48,7 +47,7 @@ export const POST = async (request: Request) => {
     } catch (error) {
       if (typeof error === "object" && error !== null && "code" in error) {
         if ((error as { code?: string }).code === "23505") {
-          return redirectTo(request, "/admin/players?error=duplicate");
+          return redirectTo("/admin/players?error=duplicate");
         }
       }
       throw error;
@@ -59,7 +58,7 @@ export const POST = async (request: Request) => {
     const isActive = toBool(formData.get("isActive"));
 
     if (!displayName || !handle) {
-      return redirectTo(request, "/admin/players?error=missing");
+      return redirectTo("/admin/players?error=missing");
     }
 
     try {
@@ -71,7 +70,7 @@ export const POST = async (request: Request) => {
     } catch (error) {
       if (typeof error === "object" && error !== null && "code" in error) {
         if ((error as { code?: string }).code === "23505") {
-          return redirectTo(request, "/admin/players?error=duplicate");
+          return redirectTo("/admin/players?error=duplicate");
         }
       }
       throw error;
@@ -80,5 +79,5 @@ export const POST = async (request: Request) => {
 
   revalidatePath("/admin/players");
   revalidatePath("/");
-  return redirectTo(request, "/admin/players");
+  return redirectTo("/admin/players");
 };

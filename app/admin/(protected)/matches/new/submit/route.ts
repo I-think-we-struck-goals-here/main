@@ -12,12 +12,11 @@ const parseNumber = (value: FormDataEntryValue | null, fallback = 0) => {
   return Number.isFinite(numeric) ? numeric : fallback;
 };
 
-const redirectTo = (request: Request, path: string) =>
-  NextResponse.redirect(new URL(path, request.url), 303);
+const redirectTo = (path: string) => NextResponse.redirect(path, 303);
 
 export const POST = async (request: Request) => {
   if (!(await requireAdminSession())) {
-    return redirectTo(request, "/admin/login");
+    return redirectTo("/admin/login");
   }
 
   const formData = await request.formData();
@@ -31,12 +30,12 @@ export const POST = async (request: Request) => {
   const matchCostGbp = matchCostRaw.length ? matchCostRaw : "70.00";
 
   if (!Number.isFinite(seasonId) || !playedAtRaw || !opponent) {
-    return redirectTo(request, "/admin/matches/new?error=missing");
+    return redirectTo("/admin/matches/new?error=missing");
   }
 
   const playedAt = new Date(playedAtRaw);
   if (Number.isNaN(playedAt.getTime())) {
-    return redirectTo(request, "/admin/matches/new?error=invalid_date");
+    return redirectTo("/admin/matches/new?error=invalid_date");
   }
 
   const playerIds = formData
@@ -45,7 +44,7 @@ export const POST = async (request: Request) => {
     .filter((value) => Number.isFinite(value));
 
   if (playerIds.length === 0) {
-    return redirectTo(request, "/admin/matches/new?error=no_players");
+    return redirectTo("/admin/matches/new?error=no_players");
   }
 
   const playedPlayerIds = playerIds.filter(
@@ -53,7 +52,7 @@ export const POST = async (request: Request) => {
   );
 
   if (playedPlayerIds.length === 0) {
-    return redirectTo(request, "/admin/matches/new?error=none_played");
+    return redirectTo("/admin/matches/new?error=none_played");
   }
 
   const playerRows = await db
@@ -69,7 +68,7 @@ export const POST = async (request: Request) => {
 
   const matchCostPence = poundsToPence(matchCostGbp);
   if (!Number.isFinite(matchCostPence)) {
-    return redirectTo(request, "/admin/matches/new?error=invalid_cost");
+    return redirectTo("/admin/matches/new?error=invalid_cost");
   }
 
   const shareMap = new Map(
@@ -93,7 +92,7 @@ export const POST = async (request: Request) => {
     .returning({ id: matches.id });
 
   if (!createdMatch?.id) {
-    return redirectTo(request, "/admin/matches/new?error=save_failed");
+    return redirectTo("/admin/matches/new?error=save_failed");
   }
 
   const playedSet = new Set(playedPlayerIds);
@@ -118,5 +117,5 @@ export const POST = async (request: Request) => {
 
   revalidatePath("/admin/matches/new");
   revalidatePath("/");
-  return redirectTo(request, "/admin/matches/new?success=1");
+  return redirectTo("/admin/matches/new?success=1");
 };
