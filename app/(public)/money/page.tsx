@@ -44,7 +44,7 @@ export default async function MoneyPage() {
 
       <section className="flex flex-col gap-3">
         <div className="grid text-xs uppercase tracking-[0.2em] text-black/50">
-          <div className="grid grid-cols-[minmax(0,1fr)_72px_96px] items-center md:grid-cols-[minmax(0,1fr)_120px_140px]">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3">
             <span>Player</span>
             <span className="text-right">Owed</span>
             <span className="text-right">Settle</span>
@@ -57,7 +57,7 @@ export default async function MoneyPage() {
             return (
               <div
                 key={row.playerId}
-                className="grid grid-cols-[minmax(0,1fr)_72px_96px] items-center gap-2 rounded-2xl border border-black/5 bg-white/70 px-3 py-3 md:grid-cols-[minmax(0,1fr)_120px_140px]"
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-2xl border border-black/5 bg-white/70 px-3 py-3"
               >
                 <Link
                   href={`/player/${row.handle}`}
@@ -72,19 +72,21 @@ export default async function MoneyPage() {
                   {showPayButton ? (
                     <a
                       href={buildMonzoLink(row.owedPence)}
-                      className="inline-flex rounded-full bg-black px-2 py-2 text-white md:px-3"
+                      className="inline-flex whitespace-nowrap rounded-full bg-black px-2 py-2 text-white md:px-3"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Settle up
+                      <span className="md:hidden">Pay</span>
+                      <span className="hidden md:inline">Settle up</span>
                     </a>
                   ) : showCredit ? (
-                    <span className="inline-flex rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
+                    <span className="inline-flex whitespace-nowrap rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
                       Credit
                     </span>
                   ) : (
-                    <span className="inline-flex rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
-                      All square
+                    <span className="inline-flex whitespace-nowrap rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
+                      <span className="md:hidden">Square</span>
+                      <span className="hidden md:inline">All square</span>
                     </span>
                   )}
                 </div>
