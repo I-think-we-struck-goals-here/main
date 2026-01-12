@@ -38,52 +38,52 @@ export default async function MoneyPage() {
           Balances for {activeSeason.name}
         </h1>
         <p className="mt-2 text-sm text-black/60">
-          Public balances for each player this season.
+          Balances for each player this season.
         </p>
       </section>
 
-      <section className="rounded-[28px] border border-black/10 bg-white/80 p-6 shadow-sm">
-        <div className="grid gap-2 text-xs uppercase tracking-[0.2em] text-black/50">
-          <div className="grid grid-cols-[1fr_120px_140px] items-center">
+      <section className="flex flex-col gap-3">
+        <div className="grid text-xs uppercase tracking-[0.2em] text-black/50">
+          <div className="grid grid-cols-[minmax(0,1fr)_72px_96px] items-center md:grid-cols-[minmax(0,1fr)_120px_140px]">
             <span>Player</span>
             <span className="text-right">Owed</span>
             <span className="text-right">Settle</span>
           </div>
         </div>
-        <div className="mt-4 grid gap-2 text-sm text-black/70">
+        <div className="grid gap-2 text-sm text-black/70">
           {rows.map((row) => {
             const showPayButton = row.owedPence > 0;
             const showCredit = row.owedPence < 0;
             return (
               <div
                 key={row.playerId}
-                className="grid grid-cols-[1fr_120px_140px] items-center rounded-2xl border border-black/5 bg-black/[0.02] px-3 py-3"
+                className="grid grid-cols-[minmax(0,1fr)_72px_96px] items-center gap-2 rounded-2xl border border-black/5 bg-white/70 px-3 py-3 md:grid-cols-[minmax(0,1fr)_120px_140px]"
               >
                 <Link
                   href={`/player/${row.handle}`}
-                  className="text-sm font-semibold text-black hover:text-black/70"
+                  className="min-w-0 text-sm font-semibold text-black hover:text-black/70"
                 >
-                  {row.displayName}
+                  <span className="block truncate">{row.displayName}</span>
                 </Link>
                 <span className="text-right text-sm font-semibold text-black">
                   {formatSignedGbp(row.owedPence)}
                 </span>
-                <div className="text-right text-xs uppercase tracking-[0.2em]">
+                <div className="text-right text-[10px] uppercase tracking-[0.2em] md:text-xs">
                   {showPayButton ? (
                     <a
                       href={buildMonzoLink(row.owedPence)}
-                      className="inline-flex rounded-full bg-black px-3 py-2 text-white"
+                      className="inline-flex rounded-full bg-black px-2 py-2 text-white md:px-3"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       Settle up
                     </a>
                   ) : showCredit ? (
-                    <span className="inline-flex rounded-full border border-black/10 px-3 py-2 text-black/60">
+                    <span className="inline-flex rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
                       Credit
                     </span>
                   ) : (
-                    <span className="inline-flex rounded-full border border-black/10 px-3 py-2 text-black/60">
+                    <span className="inline-flex rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
                       All square
                     </span>
                   )}
