@@ -10,8 +10,8 @@ type AdminPlayersPageProps = {
 };
 
 const ERROR_COPY: Record<string, string> = {
-  missing: "Add a name and handle before saving.",
-  duplicate: "That handle is already in use.",
+  missing: "Add a player name before saving.",
+  duplicate: "That name already exists.",
 };
 
 export default async function AdminPlayersPage({
@@ -23,7 +23,7 @@ export default async function AdminPlayersPage({
   const playerRows = await db
     .select()
     .from(players)
-    .orderBy(players.sortOrder, players.displayName);
+    .orderBy(players.displayName);
 
   return (
     <div className="flex flex-col gap-8">
@@ -39,22 +39,11 @@ export default async function AdminPlayersPage({
         ) : null}
         <form
           action={createPlayer}
-          className="mt-4 grid gap-3 md:grid-cols-4"
+          className="mt-4 grid gap-3 md:grid-cols-3"
         >
           <input
             name="displayName"
             placeholder="Display name"
-            className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm"
-          />
-          <input
-            name="handle"
-            placeholder="Handle (url-safe)"
-            className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm"
-          />
-          <input
-            name="sortOrder"
-            type="number"
-            placeholder="Sort order"
             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm"
           />
           <label className="flex items-center gap-2 text-sm text-white/70">
@@ -79,23 +68,12 @@ export default async function AdminPlayersPage({
             <form
               key={player.id}
               action={updatePlayer}
-              className="grid items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 md:grid-cols-6"
+              className="grid items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 md:grid-cols-4"
             >
               <input type="hidden" name="playerId" value={player.id} />
               <input
                 name="displayName"
                 defaultValue={player.displayName}
-                className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
-              />
-              <input
-                name="handle"
-                defaultValue={player.handle}
-                className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
-              />
-              <input
-                name="sortOrder"
-                type="number"
-                defaultValue={player.sortOrder}
                 className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
               />
               <label className="flex items-center gap-2 text-sm text-white/70">

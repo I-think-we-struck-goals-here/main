@@ -86,7 +86,7 @@ export default async function HomePage() {
           <p className="mt-4 text-4xl font-semibold text-black">£70.00</p>
           <p className="mt-2 text-sm text-black/60">
             Split evenly among everyone who played. Remainders are assigned by
-            handle order to keep totals exact.
+            name order to keep totals exact.
           </p>
         </div>
       </section>

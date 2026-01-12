@@ -40,7 +40,6 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
         <h1 className="mt-2 text-3xl font-semibold text-black">
           {allTimeStats.player.displayName}
         </h1>
-        <p className="text-sm text-black/60">@{allTimeStats.player.handle}</p>
         <div className="mt-6 grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
           <div className="rounded-3xl border border-black/10 bg-black/5 p-6">
             <p className="text-xs uppercase tracking-[0.3em] text-black/40">

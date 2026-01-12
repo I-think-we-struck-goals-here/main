@@ -11,7 +11,6 @@ export type PlayerStats = {
   displayName: string;
   handle: string;
   isActive: boolean;
-  sortOrder: number;
   gamesPlayed: number;
   goals: number;
   assists: number;
@@ -49,7 +48,6 @@ const buildStatsMap = async (seasonId?: number) => {
       displayName: "",
       handle: "",
       isActive: false,
-      sortOrder: 0,
       gamesPlayed: row.gamesPlayed ?? 0,
       goals: row.goals ?? 0,
       assists: row.assists ?? 0,
@@ -226,7 +224,7 @@ export const getSeasonLeaderboard = async (seasonId: number) => {
     db
       .select()
       .from(players)
-      .orderBy(players.sortOrder, players.displayName),
+      .orderBy(players.displayName),
     buildStatsMap(seasonId),
     buildOwedMap(seasonId),
   ]);
@@ -238,7 +236,6 @@ export const getSeasonLeaderboard = async (seasonId: number) => {
       displayName: player.displayName,
       handle: player.handle,
       isActive: player.isActive,
-      sortOrder: player.sortOrder,
       gamesPlayed: stats?.gamesPlayed ?? 0,
       goals: stats?.goals ?? 0,
       assists: stats?.assists ?? 0,
@@ -252,7 +249,7 @@ export const getAllTimeLeaderboard = async () => {
     db
       .select()
       .from(players)
-      .orderBy(players.sortOrder, players.displayName),
+      .orderBy(players.displayName),
     buildStatsMap(),
     buildOwedMap(),
   ]);
@@ -264,7 +261,6 @@ export const getAllTimeLeaderboard = async () => {
       displayName: player.displayName,
       handle: player.handle,
       isActive: player.isActive,
-      sortOrder: player.sortOrder,
       gamesPlayed: stats?.gamesPlayed ?? 0,
       goals: stats?.goals ?? 0,
       assists: stats?.assists ?? 0,
@@ -295,7 +291,6 @@ export const getPlayerSeasonStats = async (handle: string, seasonId: number) => 
       displayName: player.displayName,
       handle: player.handle,
       isActive: player.isActive,
-      sortOrder: player.sortOrder,
       gamesPlayed: 0,
       goals: 0,
       assists: 0,
@@ -325,7 +320,6 @@ export const getPlayerAllTimeStats = async (handle: string) => {
       displayName: player.displayName,
       handle: player.handle,
       isActive: player.isActive,
-      sortOrder: player.sortOrder,
       gamesPlayed: 0,
       goals: 0,
       assists: 0,

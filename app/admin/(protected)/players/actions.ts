@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { players } from "@/db/schema";
 
-const normalizeHandle = (value: string) =>
+const slugifyName = (value: string) =>
   value
     .trim()
     .toLowerCase()
@@ -19,8 +19,7 @@ const toBool = (value: FormDataEntryValue | null) => value === "on";
 
 export const createPlayer = async (formData: FormData) => {
   const displayName = String(formData.get("displayName") ?? "").trim();
-  const handle = normalizeHandle(String(formData.get("handle") ?? ""));
-  const sortOrder = Number(formData.get("sortOrder") ?? 0);
+  const handle = slugifyName(displayName);
   const isActive = toBool(formData.get("isActive"));
 
   if (!displayName || !handle) {
@@ -31,7 +30,6 @@ export const createPlayer = async (formData: FormData) => {
     await db.insert(players).values({
       displayName,
       handle,
-      sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
       isActive,
     });
   } catch (error) {
@@ -51,8 +49,7 @@ export const createPlayer = async (formData: FormData) => {
 export const updatePlayer = async (formData: FormData) => {
   const id = Number(formData.get("playerId"));
   const displayName = String(formData.get("displayName") ?? "").trim();
-  const handle = normalizeHandle(String(formData.get("handle") ?? ""));
-  const sortOrder = Number(formData.get("sortOrder") ?? 0);
+  const handle = slugifyName(displayName);
   const isActive = toBool(formData.get("isActive"));
 
   if (!Number.isFinite(id) || !displayName || !handle) {
@@ -65,7 +62,6 @@ export const updatePlayer = async (formData: FormData) => {
       .set({
         displayName,
         handle,
-        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
         isActive,
       })
       .where(eq(players.id, id));

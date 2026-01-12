@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 type PlayerRow = {
   id: number;
   displayName: string;
-  handle: string;
 };
 
 type SeasonOption = {
@@ -17,7 +16,6 @@ type SeasonOption = {
 type AppearanceRow = {
   playerId: number;
   displayName: string;
-  handle: string;
   played: boolean;
   goals: number;
   assists: number;
@@ -42,7 +40,6 @@ export default function MatchForm({
     players.map((player) => ({
       playerId: player.id,
       displayName: player.displayName,
-      handle: player.handle,
       played: lastMatchPlayerIds.includes(player.id),
       goals: 0,
       assists: 0,
@@ -60,7 +57,7 @@ export default function MatchForm({
 
   const updateRow = (
     playerId: number,
-    updates: Partial<Omit<AppearanceRow, "playerId" | "handle">>
+    updates: Partial<Omit<AppearanceRow, "playerId">>
   ) => {
     setRows((current) =>
       current.map((row) =>
@@ -218,7 +215,6 @@ export default function MatchForm({
                 <span className="text-sm font-semibold text-white">
                   {row.displayName}
                 </span>
-                <span className="text-xs text-white/50">@{row.handle}</span>
               </div>
               <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/60">
                 <input

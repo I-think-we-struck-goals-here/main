@@ -14,7 +14,7 @@ export default async function AdminPaymentsPage() {
       .select()
       .from(players)
       .where(eq(players.isActive, true))
-      .orderBy(players.sortOrder, players.displayName),
+      .orderBy(players.displayName),
     db
       .select({
         id: payments.id,

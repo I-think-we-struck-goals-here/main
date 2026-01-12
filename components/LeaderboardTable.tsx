@@ -63,7 +63,6 @@ export default function LeaderboardTable({
                 <span className="font-semibold text-black">
                   {row.displayName}
                 </span>
-                <span className="text-xs text-black/50">@{row.handle}</span>
               </div>
             </div>
             <span className="text-right font-semibold text-black">

@@ -48,7 +48,7 @@ export default async function AdminNewMatchPage({
     .select()
     .from(players)
     .where(eq(players.isActive, true))
-    .orderBy(players.sortOrder, players.displayName);
+    .orderBy(players.displayName);
 
   if (playerRows.length === 0) {
     return (
