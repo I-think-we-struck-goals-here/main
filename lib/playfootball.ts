@@ -178,11 +178,14 @@ const parseFixtures = (markdown: string): LeagueFixture[] => {
 const normalizeTeamName = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-export const getPlayFootballTeamName = () =>
-  process.env.PLAYFOOTBALL_TEAM_NAME ?? "I think we struck goals here";
+export const getPlayFootballTeamName = (season?: Season | null) =>
+  season?.playfootballTeamName?.trim() || "I think we struck goals here";
 
-export const isPlayFootballTeam = (team: string) => {
-  return normalizeTeamName(team) === normalizeTeamName(getPlayFootballTeamName());
+export const isPlayFootballTeam = (team: string, season?: Season | null) => {
+  return (
+    normalizeTeamName(team) ===
+    normalizeTeamName(getPlayFootballTeamName(season))
+  );
 };
 
 const normalizeSnapshot = (
@@ -197,15 +200,14 @@ const normalizeSnapshot = (
 };
 
 const getSourceUrls = (season: Season) => {
-  const fixturesUrl =
-    season.sourceUrlFixtures ?? process.env.PLAYFOOTBALL_FIXTURES_URL;
-  const standingsUrl =
-    season.sourceUrlStandings ?? process.env.PLAYFOOTBALL_STANDINGS_URL;
+  const fixturesUrl = season.sourceUrlFixtures?.trim() || null;
+  const standingsUrl = season.sourceUrlStandings?.trim() || null;
   return { fixturesUrl, standingsUrl };
 };
 
 export const getPlayFootballSnapshot = async (
-  season: Season
+  season: Season,
+  options: { force?: boolean } = {}
 ): Promise<PlayFootballSnapshot | null> => {
   const { fixturesUrl, standingsUrl } = getSourceUrls(season);
   if (!fixturesUrl && !standingsUrl) {
@@ -219,7 +221,7 @@ export const getPlayFootballSnapshot = async (
     .orderBy(desc(externalLeagueSnapshots.fetchedAt))
     .limit(1);
 
-  if (latest) {
+  if (latest && !options.force) {
     const ageMs = Date.now() - latest.fetchedAt.getTime();
     if (ageMs < SNAPSHOT_TTL_MS) {
       return normalizeSnapshot(latest);
@@ -261,7 +263,11 @@ export const getPlayFootballSnapshot = async (
       seasonId: season.id,
       fetchedAt: new Date(),
       source: "playfootball",
-      payloadJson: { fixtures: [], standings: [], fetchedAt: new Date().toISOString() },
+      payloadJson: {
+        fixtures: [],
+        standings: [],
+        fetchedAt: new Date().toISOString(),
+      },
       status: "error",
       statusMessage: message,
     });
@@ -301,6 +307,10 @@ export const getNextFixtureForTeam = (
     withDates[0] ??
     null
   );
+};
+
+export const refreshPlayFootballSnapshot = async (season: Season) => {
+  return getPlayFootballSnapshot(season, { force: true });
 };
 
 export const formatDateTimeLocal = (isoString: string) => {

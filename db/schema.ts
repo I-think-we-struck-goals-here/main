@@ -23,6 +23,7 @@ export const seasons = pgTable(
     sourceUrlPlayersLounge: text("source_url_players_lounge"),
     sourceUrlFixtures: text("source_url_fixtures"),
     sourceUrlStandings: text("source_url_standings"),
+    playfootballTeamName: text("playfootball_team_name"),
   },
   (table) => ({
     slugUnique: uniqueIndex("seasons_slug_unique").on(table.slug),

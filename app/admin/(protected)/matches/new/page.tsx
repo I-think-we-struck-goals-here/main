@@ -6,6 +6,7 @@ import {
   formatDateTimeLocal,
   getNextFixtureForTeam,
   getPlayFootballSnapshot,
+  getPlayFootballTeamName,
   isPlayFootballTeam,
 } from "@/lib/playfootball";
 
@@ -85,11 +86,12 @@ export default async function AdminNewMatchPage({
   const playFootball = defaultSeason
     ? await getPlayFootballSnapshot(defaultSeason)
     : null;
+  const teamName = getPlayFootballTeamName(defaultSeason);
   const nextFixture = playFootball
-    ? getNextFixtureForTeam(playFootball.fixtures)
+    ? getNextFixtureForTeam(playFootball.fixtures, teamName)
     : null;
   const defaultOpponent = nextFixture
-    ? isPlayFootballTeam(nextFixture.home)
+    ? isPlayFootballTeam(nextFixture.home, defaultSeason)
       ? nextFixture.away
       : nextFixture.home
     : undefined;

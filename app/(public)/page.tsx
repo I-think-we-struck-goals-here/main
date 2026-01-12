@@ -68,31 +68,6 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="rounded-[36px] border border-black/10 bg-white/90 p-8 shadow-sm">
-        <div className="flex flex-col gap-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-black/40">
-            Season
-          </p>
-          <h1 className="text-4xl font-semibold leading-tight text-black">
-            {activeSeason.name}
-          </h1>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/season/${activeSeason.slug}`}
-              className="rounded-full bg-black px-5 py-2 text-xs uppercase tracking-[0.2em] text-white"
-            >
-              Season leaderboard
-            </Link>
-            <Link
-              href="/all-time"
-              className="rounded-full border border-black/10 px-5 py-2 text-xs uppercase tracking-[0.2em] text-black/70"
-            >
-              All-time stats
-            </Link>
-          </div>
-        </div>
-      </section>
-
       <section className="grid gap-6 md:grid-cols-2">
         <div className="rounded-[28px] border border-black/10 bg-white/80 p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
@@ -116,7 +91,7 @@ export default async function HomePage() {
                 <span className="text-right">Pts</span>
               </div>
               {standings.map((row) => {
-                const isTeam = isPlayFootballTeam(row.team);
+                const isTeam = isPlayFootballTeam(row.team, activeSeason);
                 return (
                   <div
                     key={row.team}

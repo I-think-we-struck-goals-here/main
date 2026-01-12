@@ -65,7 +65,7 @@ export default async function LeaguePage() {
               <span className="text-right">Pts</span>
             </div>
             {snapshot.standings.map((row) => {
-              const isTeam = isPlayFootballTeam(row.team);
+              const isTeam = isPlayFootballTeam(row.team, activeSeason);
               return (
                 <div
                   key={row.team}
