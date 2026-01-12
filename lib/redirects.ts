@@ -3,9 +3,13 @@ import "server-only";
 import { NextResponse } from "next/server";
 
 const getBaseUrl = (request: Request) => {
-  const envBase = process.env.DEPLOY_PRIME_URL || process.env.URL;
+  const envBase =
+    process.env.DEPLOY_PRIME_URL || process.env.URL || process.env.VERCEL_URL;
   if (envBase) {
-    return envBase;
+    if (envBase.startsWith("http")) {
+      return envBase;
+    }
+    return `https://${envBase}`;
   }
 
   const proto = request.headers.get("x-forwarded-proto") ?? "https";
