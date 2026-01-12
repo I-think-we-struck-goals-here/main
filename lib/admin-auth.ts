@@ -12,12 +12,13 @@ const RATE_LIMIT_MAX_ATTEMPTS = 5;
 
 const loginAttempts = new Map<string, { count: number; firstAttemptMs: number }>();
 
-const getClientIp = () => {
-  const forwarded = headers().get("x-forwarded-for");
+const getClientIp = async () => {
+  const headerStore = await headers();
+  const forwarded = headerStore.get("x-forwarded-for");
   if (forwarded) {
     return forwarded.split(",")[0]?.trim() ?? "unknown";
   }
-  return headers().get("x-real-ip") ?? "unknown";
+  return headerStore.get("x-real-ip") ?? "unknown";
 };
 
 const getSessionSecret = () => {
@@ -94,8 +95,8 @@ const isRateLimited = (ip: string) => {
   return existing.count >= RATE_LIMIT_MAX_ATTEMPTS;
 };
 
-export const attemptAdminLogin = (password: string) => {
-  const ip = getClientIp();
+export const attemptAdminLogin = async (password: string) => {
+  const ip = await getClientIp();
   if (isRateLimited(ip)) {
     return { ok: false, reason: "rate_limited" as const };
   }

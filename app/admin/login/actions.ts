@@ -10,7 +10,7 @@ export const loginAction = async (formData: FormData) => {
     redirect("/admin/login?error=missing");
   }
 
-  const result = attemptAdminLogin(password);
+  const result = await attemptAdminLogin(password);
   if (!result.ok) {
     redirect(`/admin/login?error=${result.reason}`);
   }
