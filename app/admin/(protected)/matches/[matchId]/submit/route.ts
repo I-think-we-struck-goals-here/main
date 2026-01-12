@@ -3,8 +3,8 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
 import { appearances, matches, players } from "@/db/schema";
-import { poundsToPence, splitMatchCost } from "@/lib/money";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { poundsToPence, splitMatchCost } from "@/lib/money";
 import { redirectTo } from "@/lib/redirects";
 
 const parseNumber = (value: FormDataEntryValue | null, fallback = 0) => {
@@ -12,9 +12,28 @@ const parseNumber = (value: FormDataEntryValue | null, fallback = 0) => {
   return Number.isFinite(numeric) ? numeric : fallback;
 };
 
-export const POST = async (request: Request) => {
+export const POST = async (
+  request: Request,
+  { params }: { params: Promise<{ matchId: string }> }
+) => {
+  const { matchId: matchIdParam } = await params;
   if (!(await requireAdminSession())) {
     return redirectTo(request, "/admin/login");
+  }
+
+  const matchId = Number(matchIdParam);
+  if (!Number.isFinite(matchId)) {
+    return redirectTo(request, "/admin/matches?error=missing");
+  }
+
+  const [existingMatch] = await db
+    .select({ id: matches.id })
+    .from(matches)
+    .where(inArray(matches.id, [matchId]))
+    .limit(1);
+
+  if (!existingMatch) {
+    return redirectTo(request, "/admin/matches?error=not_found");
   }
 
   const formData = await request.formData();
@@ -28,12 +47,12 @@ export const POST = async (request: Request) => {
   const matchCostGbp = matchCostRaw.length ? matchCostRaw : "70.00";
 
   if (!Number.isFinite(seasonId) || !playedAtRaw || !opponent) {
-    return redirectTo(request, "/admin/matches/new?error=missing");
+    return redirectTo(request, `/admin/matches/${matchId}?error=missing`);
   }
 
   const playedAt = new Date(playedAtRaw);
   if (Number.isNaN(playedAt.getTime())) {
-    return redirectTo(request, "/admin/matches/new?error=invalid_date");
+    return redirectTo(request, `/admin/matches/${matchId}?error=invalid_date`);
   }
 
   const playerIds = formData
@@ -42,7 +61,7 @@ export const POST = async (request: Request) => {
     .filter((value) => Number.isFinite(value));
 
   if (playerIds.length === 0) {
-    return redirectTo(request, "/admin/matches/new?error=no_players");
+    return redirectTo(request, `/admin/matches/${matchId}?error=no_players`);
   }
 
   const playedPlayerIds = playerIds.filter(
@@ -50,7 +69,7 @@ export const POST = async (request: Request) => {
   );
 
   if (playedPlayerIds.length === 0) {
-    return redirectTo(request, "/admin/matches/new?error=none_played");
+    return redirectTo(request, `/admin/matches/${matchId}?error=none_played`);
   }
 
   const playerRows = await db
@@ -66,7 +85,7 @@ export const POST = async (request: Request) => {
 
   const matchCostPence = poundsToPence(matchCostGbp);
   if (!Number.isFinite(matchCostPence)) {
-    return redirectTo(request, "/admin/matches/new?error=invalid_cost");
+    return redirectTo(request, `/admin/matches/${matchId}?error=invalid_cost`);
   }
 
   const shareMap = new Map(
@@ -76,9 +95,9 @@ export const POST = async (request: Request) => {
     ])
   );
 
-  const [createdMatch] = await db
-    .insert(matches)
-    .values({
+  await db
+    .update(matches)
+    .set({
       seasonId,
       playedAt,
       opponent,
@@ -87,11 +106,9 @@ export const POST = async (request: Request) => {
       goalsAgainst,
       matchCostGbp,
     })
-    .returning({ id: matches.id });
+    .where(inArray(matches.id, [matchId]));
 
-  if (!createdMatch?.id) {
-    return redirectTo(request, "/admin/matches/new?error=save_failed");
-  }
+  await db.delete(appearances).where(inArray(appearances.matchId, [matchId]));
 
   const playedSet = new Set(playedPlayerIds);
   const appearanceRows = playerIds.map((playerId) => {
@@ -100,7 +117,7 @@ export const POST = async (request: Request) => {
     const assists = parseNumber(formData.get(`assists-${playerId}`));
 
     return {
-      matchId: createdMatch.id,
+      matchId,
       playerId,
       played,
       goals: played ? goals : 0,
@@ -115,5 +132,6 @@ export const POST = async (request: Request) => {
 
   revalidatePath("/admin/matches");
   revalidatePath("/");
-  return redirectTo(request, "/admin/matches?created=1");
+  revalidatePath("/league");
+  return redirectTo(request, "/admin/matches?updated=1");
 };

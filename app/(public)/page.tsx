@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { formatSignedGbp } from "@/lib/money";
 import {
+  filterFixturesForTeam,
   getPlayFootballSnapshot,
   isPlayFootballTeam,
 } from "@/lib/playfootball";
@@ -45,7 +46,11 @@ export default async function HomePage() {
     .slice(0, 3);
 
   const standings = playFootball?.standings ?? [];
-  const fixtures = playFootball?.fixtures ?? [];
+  const fixtures = filterFixturesForTeam(
+    playFootball?.fixtures ?? [],
+    activeSeason
+  );
+  const hasPlayFootball = Boolean(playFootball);
   const lastUpdated = playFootball?.fetchedAt
     ? new Date(playFootball.fetchedAt).toLocaleString("en-GB", {
         day: "2-digit",
@@ -56,15 +61,14 @@ export default async function HomePage() {
     : null;
 
   const now = Date.now();
-  const upcomingFixtures =
-    fixtures
-      .filter((fixture) => {
-        if (!fixture.kickoffAt) {
-          return true;
-        }
-        return Date.parse(fixture.kickoffAt) >= now;
-      })
-      .slice(0, 5) ?? [];
+  const upcomingFixtures = fixtures
+    .filter((fixture) => {
+      if (!fixture.kickoffAt) {
+        return true;
+      }
+      return Date.parse(fixture.kickoffAt) >= now;
+    })
+    .slice(0, 5);
 
   return (
     <div className="flex flex-col gap-8">
@@ -148,7 +152,9 @@ export default async function HomePage() {
             </div>
           ) : (
             <p className="mt-4 text-sm text-black/60">
-              Add PlayFootball URLs to pull fixtures.
+              {hasPlayFootball
+                ? "No upcoming fixtures for your team yet."
+                : "Add PlayFootball URLs to pull fixtures."}
             </p>
           )}
         </div>

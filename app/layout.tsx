@@ -14,7 +14,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "6-a-side Team Tracker",
+  title: "I think we struck goals here",
   description: "Season stats, money owed, and admin match logging.",
 };
 

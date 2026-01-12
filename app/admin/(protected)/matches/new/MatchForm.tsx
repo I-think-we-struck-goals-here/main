@@ -29,6 +29,21 @@ type MatchFormProps = {
   action: string;
   defaultOpponent?: string;
   defaultPlayedAt?: string;
+  initialMatch?: {
+    seasonId?: number;
+    playedAt?: string;
+    opponent?: string;
+    venue?: string | null;
+    goalsFor?: number;
+    goalsAgainst?: number;
+    matchCostGbp?: string;
+  };
+  initialAppearances?: Array<{
+    playerId: number;
+    played: boolean;
+    goals: number;
+    assists: number;
+  }>;
 };
 
 export default function MatchForm({
@@ -39,17 +54,33 @@ export default function MatchForm({
   action,
   defaultOpponent,
   defaultPlayedAt,
+  initialMatch,
+  initialAppearances,
 }: MatchFormProps) {
+  const appearanceMap = new Map(
+    initialAppearances?.map((appearance) => [
+      appearance.playerId,
+      appearance,
+    ]) ?? []
+  );
+  const defaultSeasonValue = initialMatch?.seasonId ?? defaultSeasonId;
+  const opponentValue = initialMatch?.opponent ?? defaultOpponent;
+  const playedAtValue = initialMatch?.playedAt ?? defaultPlayedAt;
+  const venueValue = initialMatch?.venue ?? "";
+  const goalsAgainstValue = initialMatch?.goalsAgainst ?? 0;
+  const matchCostValue = initialMatch?.matchCostGbp ?? "70.00";
+  const canCopyLast = lastMatchPlayerIds.length > 0;
+
   const [rows, setRows] = useState<AppearanceRow[]>(() =>
     players.map((player) => ({
       playerId: player.id,
       displayName: player.displayName,
-      played: lastMatchPlayerIds.includes(player.id),
-      goals: 0,
-      assists: 0,
+      played: appearanceMap.get(player.id)?.played ?? lastMatchPlayerIds.includes(player.id),
+      goals: appearanceMap.get(player.id)?.goals ?? 0,
+      assists: appearanceMap.get(player.id)?.assists ?? 0,
     }))
   );
-  const [goalsFor, setGoalsFor] = useState(0);
+  const [goalsFor, setGoalsFor] = useState(initialMatch?.goalsFor ?? 0);
 
   const totalGoals = useMemo(
     () => rows.reduce((sum, row) => sum + row.goals, 0),
@@ -120,13 +151,15 @@ export default function MatchForm({
             >
               Clear all
             </button>
-            <button
-              type="button"
-              onClick={copyLastMatch}
-              className="rounded-full border border-white/15 px-3 py-1 text-xs uppercase tracking-wide text-white/70 hover:border-white/40"
-            >
-              Copy last squad
-            </button>
+            {canCopyLast ? (
+              <button
+                type="button"
+                onClick={copyLastMatch}
+                className="rounded-full border border-white/15 px-3 py-1 text-xs uppercase tracking-wide text-white/70 hover:border-white/40"
+              >
+                Copy last squad
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -134,7 +167,7 @@ export default function MatchForm({
             Season
             <select
               name="seasonId"
-              defaultValue={defaultSeasonId}
+              defaultValue={defaultSeasonValue}
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm text-white"
             >
               {seasons.map((season) => (
@@ -150,7 +183,7 @@ export default function MatchForm({
               name="playedAt"
               type="datetime-local"
               required
-              defaultValue={defaultPlayedAt}
+              defaultValue={playedAtValue}
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
             />
           </label>
@@ -159,7 +192,7 @@ export default function MatchForm({
             <input
               name="opponent"
               required
-              defaultValue={defaultOpponent}
+              defaultValue={opponentValue}
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
             />
           </label>
@@ -167,6 +200,7 @@ export default function MatchForm({
             Venue
             <input
               name="venue"
+              defaultValue={venueValue}
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
             />
           </label>
@@ -187,6 +221,7 @@ export default function MatchForm({
             <input
               name="goalsAgainst"
               type="number"
+              defaultValue={goalsAgainstValue}
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
             />
           </label>
@@ -196,7 +231,7 @@ export default function MatchForm({
               name="matchCostGbp"
               type="number"
               step="0.01"
-              defaultValue="70.00"
+              defaultValue={matchCostValue}
               className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-sm"
             />
           </label>

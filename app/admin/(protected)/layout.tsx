@@ -29,6 +29,9 @@ export default async function AdminLayout({
             <Link className="hover:text-white" href="/admin/seasons">
               Seasons
             </Link>
+            <Link className="hover:text-white" href="/admin/matches">
+              Matches
+            </Link>
             <Link className="hover:text-white" href="/admin/matches/new">
               Log match
             </Link>

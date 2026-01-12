@@ -332,6 +332,19 @@ export const isPlayFootballTeam = (team: string, season?: Season | null) => {
   );
 };
 
+export const filterFixturesForTeam = (
+  fixtures: LeagueFixture[],
+  season?: Season | null
+) => {
+  const teamName = getPlayFootballTeamName(season);
+  const normalizedTeam = normalizeTeamName(teamName);
+  return fixtures.filter(
+    (fixture) =>
+      normalizeTeamName(fixture.home) === normalizedTeam ||
+      normalizeTeamName(fixture.away) === normalizedTeam
+  );
+};
+
 const normalizeSnapshot = (
   snapshot: ExternalLeagueSnapshot
 ): PlayFootballSnapshot => {
