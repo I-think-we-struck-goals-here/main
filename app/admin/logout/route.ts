@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-
 import { buildClearSessionCookie } from "@/lib/admin-auth";
+import { redirectTo } from "@/lib/redirects";
 
 export const GET = (request: Request) => {
-  const response = NextResponse.redirect("/admin/login", 303);
+  const response = redirectTo(request, "/admin/login");
   const cleared = buildClearSessionCookie();
   response.cookies.set(cleared.name, cleared.value, cleared.options);
   return response;

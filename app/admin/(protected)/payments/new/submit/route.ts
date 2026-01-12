@@ -1,15 +1,13 @@
-import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
 import { payments } from "@/db/schema";
 import { requireAdminSession } from "@/lib/admin-auth";
-
-const redirectTo = (path: string) => NextResponse.redirect(path, 303);
+import { redirectTo } from "@/lib/redirects";
 
 export const POST = async (request: Request) => {
   if (!(await requireAdminSession())) {
-    return redirectTo("/admin/login");
+    return redirectTo(request, "/admin/login");
   }
 
   const formData = await request.formData();
@@ -20,12 +18,12 @@ export const POST = async (request: Request) => {
   const paidAtRaw = String(formData.get("paidAt") ?? "").trim();
 
   if (!Number.isFinite(playerId) || !Number.isFinite(seasonId) || !amountGbp) {
-    return redirectTo("/admin/payments/new?error=missing");
+    return redirectTo(request, "/admin/payments/new?error=missing");
   }
 
   const parsedAmount = Number(amountGbp);
   if (!Number.isFinite(parsedAmount)) {
-    return redirectTo("/admin/payments/new?error=invalid_amount");
+    return redirectTo(request, "/admin/payments/new?error=invalid_amount");
   }
 
   const paidAt = paidAtRaw ? new Date(paidAtRaw) : new Date();
@@ -40,5 +38,5 @@ export const POST = async (request: Request) => {
 
   revalidatePath("/admin/payments/new");
   revalidatePath("/");
-  return redirectTo("/admin/payments/new?success=1");
+  return redirectTo(request, "/admin/payments/new?success=1");
 };
