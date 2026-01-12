@@ -39,8 +39,8 @@ export type PlayFootballSnapshot = {
 
 const toJinaUrl = (url: string) => {
   const normalized = url.startsWith("http") ? url : `https://${url}`;
-  const httpUrl = normalized.replace(/^https:/, "http:");
-  return `${JINA_BASE_URL}${httpUrl}`;
+  const hostPath = normalized.replace(/^https?:\/\//, "");
+  return `${JINA_BASE_URL}${hostPath}`;
 };
 
 const fetchMarkdown = async (url: string) => {
@@ -70,7 +70,77 @@ const parseNumberTokens = (value: string) => {
     });
 };
 
+const parseStandingsTable = (lines: string[]) => {
+  const standings: LeagueStanding[] = [];
+  let inTable = false;
+
+  for (const line of lines) {
+    if (!inTable) {
+      if (/\|\s*Name\s*\|\s*P\s*\|/i.test(line)) {
+        inTable = true;
+      }
+      continue;
+    }
+
+    if (!line.startsWith("|")) {
+      break;
+    }
+
+    if (/\|\s*-+\s*\|/.test(line)) {
+      continue;
+    }
+
+    const cells = line
+      .split("|")
+      .map((cell) => cell.trim())
+      .filter(Boolean);
+
+    if (cells.length < 10) {
+      continue;
+    }
+
+    const position = Number(cells[0]);
+    const team = cells[1];
+    const played = Number(cells[2]);
+    const won = Number(cells[3]);
+    const drawn = Number(cells[4]);
+    const lost = Number(cells[5]);
+    const goalsFor = Number(cells[6]);
+    const goalsAgainst = Number(cells[7]);
+    const goalDiff = Number(cells[8]);
+    const points = Number(cells[9]);
+
+    if (!team || Number.isNaN(position)) {
+      continue;
+    }
+
+    standings.push({
+      position,
+      team,
+      played,
+      won,
+      drawn,
+      lost,
+      goalsFor,
+      goalsAgainst,
+      goalDiff,
+      points,
+    });
+  }
+
+  return standings;
+};
+
 const parseStandings = (markdown: string): LeagueStanding[] => {
+  const lines = markdown
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const tableStandings = parseStandingsTable(lines);
+  if (tableStandings.length) {
+    return tableStandings;
+  }
+
   const regex =
     /\[([^\]]+)\]\(http:\/\/portal\.playfootball\.net\/Leagues\/TeamProfile[^)]+\)([^*\n]+?)\*\*(?:\[(\d+)\][^*]*|(\d+))\*\*/g;
   const standings: LeagueStanding[] = [];
@@ -115,11 +185,81 @@ const parseStandings = (markdown: string): LeagueStanding[] => {
 };
 
 const parseFixtureDateTime = (dateLabel: string, time: string) => {
+  const ukMatch = dateLabel.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (ukMatch) {
+    const day = Number(ukMatch[1]);
+    const month = Number(ukMatch[2]);
+    const year = Number(ukMatch[3]);
+    const [hour, minute] = time.split(":").map(Number);
+    if ([day, month, year, hour, minute].some(Number.isNaN)) {
+      return null;
+    }
+    return new Date(Date.UTC(year, month - 1, day, hour, minute)).toISOString();
+  }
+
   const parsed = Date.parse(`${dateLabel} ${time}`);
   if (Number.isNaN(parsed)) {
     return null;
   }
   return new Date(parsed).toISOString();
+};
+
+const nextNonEmpty = (lines: string[], startIndex: number) => {
+  for (let index = startIndex; index < lines.length; index += 1) {
+    const value = lines[index]?.trim();
+    if (value) {
+      return { value, index };
+    }
+  }
+  return null;
+};
+
+const parseLoungeFixtures = (lines: string[]) => {
+  const fixtures: LeagueFixture[] = [];
+  const seen = new Set<string>();
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const dateTimeMatch = line.match(
+      /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})$/
+    );
+    if (!dateTimeMatch) {
+      continue;
+    }
+
+    const dateLabel = dateTimeMatch[1];
+    const time = dateTimeMatch[2];
+    const homeLine = nextNonEmpty(lines, index + 1);
+    const vsLine = homeLine ? nextNonEmpty(lines, homeLine.index + 1) : null;
+    const awayLine = vsLine ? nextNonEmpty(lines, vsLine.index + 1) : null;
+
+    if (!homeLine || !vsLine || !awayLine) {
+      continue;
+    }
+
+    if (vsLine.value.toLowerCase() !== "vs") {
+      continue;
+    }
+
+    const home = homeLine.value;
+    const away = awayLine.value;
+    const key = `${dateLabel}|${time}|${home}|${away}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+
+    fixtures.push({
+      dateLabel,
+      time,
+      pitch: null,
+      home,
+      away,
+      kickoffAt: parseFixtureDateTime(dateLabel, time),
+    });
+  }
+
+  return fixtures;
 };
 
 const parseFixtures = (markdown: string): LeagueFixture[] => {
@@ -142,7 +282,7 @@ const parseFixtures = (markdown: string): LeagueFixture[] => {
     }
 
     const match = line.match(
-      /^(\d{1,2}:\d{2})\s+([^\[]+)?\[([^\]]+)\]\([^\)]+\)\s*v(?:s)?\s*\[([^\]]+)\]/i
+      /^(\d{1,2}:\d{2})\s+([^\[]+)?\[([^\]]+)\]\([^\)]+\)\s*vs?\s*\[([^\]]+)\]/i
     );
     if (!match) {
       continue;
@@ -172,7 +312,11 @@ const parseFixtures = (markdown: string): LeagueFixture[] => {
     });
   }
 
-  return fixtures;
+  if (fixtures.length) {
+    return fixtures;
+  }
+
+  return parseLoungeFixtures(lines);
 };
 
 const normalizeTeamName = (value: string) =>
@@ -221,7 +365,7 @@ export const getPlayFootballSnapshot = async (
     .orderBy(desc(externalLeagueSnapshots.fetchedAt))
     .limit(1);
 
-  if (latest && !options.force) {
+  if (latest && latest.status === "ok" && !options.force) {
     const ageMs = Date.now() - latest.fetchedAt.getTime();
     if (ageMs < SNAPSHOT_TTL_MS) {
       return normalizeSnapshot(latest);
