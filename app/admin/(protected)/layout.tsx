@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/admin-auth";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  if (!requireAdminSession()) {
+  if (!(await requireAdminSession())) {
     redirect("/admin/login");
   }
 

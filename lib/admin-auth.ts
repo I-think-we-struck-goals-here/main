@@ -115,7 +115,8 @@ export const attemptAdminLogin = async (password: string) => {
   clearAttempts(ip);
   const issuedAt = Math.floor(Date.now() / 1000);
   const value = `${issuedAt}.${signSession(issuedAt)}`;
-  cookies().set(SESSION_COOKIE, value, {
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, value, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -126,8 +127,9 @@ export const attemptAdminLogin = async (password: string) => {
   return { ok: true as const };
 };
 
-export const isAdminSession = () => {
-  const cookie = cookies().get(SESSION_COOKIE);
+export const isAdminSession = async () => {
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get(SESSION_COOKIE);
   if (!cookie) {
     return false;
   }
@@ -135,15 +137,16 @@ export const isAdminSession = () => {
   return verifySessionValue(cookie.value);
 };
 
-export const requireAdminSession = () => {
-  if (!isAdminSession()) {
+export const requireAdminSession = async () => {
+  if (!(await isAdminSession())) {
     return false;
   }
   return true;
 };
 
-export const clearAdminSession = () => {
-  cookies().set(SESSION_COOKIE, "", {
+export const clearAdminSession = async () => {
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, "", {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
