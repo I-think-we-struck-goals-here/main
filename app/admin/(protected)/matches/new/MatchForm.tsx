@@ -246,63 +246,128 @@ export default function MatchForm({
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-semibold">Appearances</h2>
         <div className="mt-4 grid gap-3">
-          {rows.map((row) => (
-            <div
-              key={row.playerId}
-              className="grid items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 md:grid-cols-[2fr_repeat(3,1fr)]"
-            >
-              <input type="hidden" name="playerId" value={row.playerId} />
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-white">
-                  {row.displayName}
-                </span>
+          {rows.map((row) => {
+            const isDisabled = !row.played;
+            return (
+              <div
+                key={row.playerId}
+                className="grid items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 md:grid-cols-[2fr_repeat(3,1fr)]"
+              >
+                <input type="hidden" name="playerId" value={row.playerId} />
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white">
+                    {row.displayName}
+                  </span>
+                </div>
+                <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/60">
+                  <input
+                    type="checkbox"
+                    name={`played-${row.playerId}`}
+                    checked={row.played}
+                    onChange={(event) => {
+                      updateRow(row.playerId, {
+                        played: event.target.checked,
+                        goals: event.target.checked ? row.goals : 0,
+                        assists: event.target.checked ? row.assists : 0,
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-white/20 bg-white/10"
+                  />
+                  Played
+                </label>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-wide text-white/50 md:hidden">
+                    Goals
+                  </span>
+                  <div
+                    className={`flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm ${
+                      isDisabled ? "opacity-40" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateRow(row.playerId, {
+                          goals: Math.max(0, row.goals - 1),
+                        })
+                      }
+                      disabled={isDisabled || row.goals === 0}
+                      className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/70 disabled:opacity-40"
+                      aria-label={`Decrease goals for ${row.displayName}`}
+                    >
+                      -
+                    </button>
+                    <span className="min-w-[1.5rem] text-center text-sm text-white">
+                      {row.goals}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateRow(row.playerId, {
+                          goals: row.goals + 1,
+                        })
+                      }
+                      disabled={isDisabled}
+                      className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/70 disabled:opacity-40"
+                      aria-label={`Increase goals for ${row.displayName}`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <input
+                    type="hidden"
+                    name={`goals-${row.playerId}`}
+                    value={row.goals}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-wide text-white/50 md:hidden">
+                    Assists
+                  </span>
+                  <div
+                    className={`flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm ${
+                      isDisabled ? "opacity-40" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateRow(row.playerId, {
+                          assists: Math.max(0, row.assists - 1),
+                        })
+                      }
+                      disabled={isDisabled || row.assists === 0}
+                      className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/70 disabled:opacity-40"
+                      aria-label={`Decrease assists for ${row.displayName}`}
+                    >
+                      -
+                    </button>
+                    <span className="min-w-[1.5rem] text-center text-sm text-white">
+                      {row.assists}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateRow(row.playerId, {
+                          assists: row.assists + 1,
+                        })
+                      }
+                      disabled={isDisabled}
+                      className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/70 disabled:opacity-40"
+                      aria-label={`Increase assists for ${row.displayName}`}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <input
+                    type="hidden"
+                    name={`assists-${row.playerId}`}
+                    value={row.assists}
+                  />
+                </div>
               </div>
-              <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/60">
-                <input
-                  type="checkbox"
-                  name={`played-${row.playerId}`}
-                  checked={row.played}
-                  onChange={(event) => {
-                    updateRow(row.playerId, {
-                      played: event.target.checked,
-                      goals: event.target.checked ? row.goals : 0,
-                      assists: event.target.checked ? row.assists : 0,
-                    });
-                  }}
-                  className="h-4 w-4 rounded border-white/20 bg-white/10"
-                />
-                Played
-              </label>
-              <input
-                type="number"
-                min={0}
-                name={`goals-${row.playerId}`}
-                value={row.goals}
-                onChange={(event) =>
-                  updateRow(row.playerId, {
-                    goals: Number(event.target.value) || 0,
-                  })
-                }
-                disabled={!row.played}
-                className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm disabled:opacity-40"
-                placeholder="Goals"
-              />
-              <input
-                type="number"
-                min={0}
-                name={`assists-${row.playerId}`}
-                value={row.assists}
-                onChange={(event) =>
-                  updateRow(row.playerId, {
-                    assists: Number(event.target.value) || 0,
-                  })
-                }
-                disabled={!row.played}
-                className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm disabled:opacity-40"
-                placeholder="Assists"
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

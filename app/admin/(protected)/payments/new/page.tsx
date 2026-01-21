@@ -99,11 +99,19 @@ export default async function AdminPaymentsPage() {
                 </span>
                 <span className="text-xs text-white/60">{payment.seasonName}</span>
               </div>
-              <div className="text-right text-white/70">
-                <p className="text-base font-semibold">£{payment.amountGbp}</p>
-                <p className="text-xs">
-                  {payment.paidAt.toISOString().slice(0, 10)}
-                </p>
+              <div className="flex items-center gap-4">
+                <div className="text-right text-white/70">
+                  <p className="text-base font-semibold">£{payment.amountGbp}</p>
+                  <p className="text-xs">
+                    {payment.paidAt.toISOString().slice(0, 10)}
+                  </p>
+                </div>
+                <form action="/admin/payments/delete" method="post">
+                  <input type="hidden" name="paymentId" value={payment.id} />
+                  <button className="rounded-full border border-rose-300/40 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-rose-100 hover:border-rose-300/70">
+                    Delete
+                  </button>
+                </form>
               </div>
             </div>
           ))}

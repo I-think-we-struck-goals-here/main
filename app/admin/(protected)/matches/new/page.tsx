@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { appearances, matches, players, seasons } from "@/db/schema";
 import {
   formatDateTimeLocal,
-  getNextFixtureForTeam,
+  getMostRecentFixtureForTeam,
   getPlayFootballSnapshot,
   getPlayFootballTeamName,
   isPlayFootballTeam,
@@ -87,16 +87,18 @@ export default async function AdminNewMatchPage({
     ? await getPlayFootballSnapshot(defaultSeason)
     : null;
   const teamName = getPlayFootballTeamName(defaultSeason);
-  const nextFixture = playFootball
-    ? getNextFixtureForTeam(playFootball.fixtures, teamName)
+  const recentFixture = playFootball
+    ? getMostRecentFixtureForTeam(playFootball.fixtures, teamName)
     : null;
-  const defaultOpponent = nextFixture
-    ? isPlayFootballTeam(nextFixture.home, defaultSeason)
-      ? nextFixture.away
-      : nextFixture.home
+  const defaultOpponent = recentFixture
+    ? isPlayFootballTeam(recentFixture.home, defaultSeason)
+      ? recentFixture.away
+      : recentFixture.home
     : undefined;
   const defaultPlayedAt =
-    nextFixture?.kickoffAt ? formatDateTimeLocal(nextFixture.kickoffAt) : undefined;
+    recentFixture?.kickoffAt
+      ? formatDateTimeLocal(recentFixture.kickoffAt)
+      : undefined;
 
   return (
     <div className="flex flex-col gap-4">

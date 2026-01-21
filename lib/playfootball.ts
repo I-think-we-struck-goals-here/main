@@ -70,6 +70,12 @@ const parseNumberTokens = (value: string) => {
     });
 };
 
+export const formatPlayFootballTeamName = (value: string) => {
+  const withoutMarkdown = value.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  const withoutUrls = withoutMarkdown.replace(/https?:\/\/\S+/g, "").trim();
+  return withoutUrls || value.trim();
+};
+
 const parseStandingsTable = (lines: string[]) => {
   const standings: LeagueStanding[] = [];
   let inTable = false;
@@ -100,7 +106,7 @@ const parseStandingsTable = (lines: string[]) => {
     }
 
     const position = Number(cells[0]);
-    const team = cells[1];
+    const team = formatPlayFootballTeamName(cells[1]);
     const played = Number(cells[2]);
     const won = Number(cells[3]);
     const drawn = Number(cells[4]);
@@ -147,7 +153,7 @@ const parseStandings = (markdown: string): LeagueStanding[] => {
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(markdown)) !== null) {
-    const team = match[1]?.trim();
+    const team = formatPlayFootballTeamName(match[1]?.trim() ?? "");
     if (!team) {
       continue;
     }
@@ -483,6 +489,40 @@ export const getNextFixtureForTeam = (
     withDates[0] ??
     null
   );
+};
+
+export const getMostRecentFixtureForTeam = (
+  fixtures: LeagueFixture[],
+  teamName = getPlayFootballTeamName()
+) => {
+  const normalizedTeam = normalizeTeamName(teamName);
+  const relevant = fixtures.filter((fixture) => {
+    return (
+      normalizeTeamName(fixture.home) === normalizedTeam ||
+      normalizeTeamName(fixture.away) === normalizedTeam
+    );
+  });
+
+  const withDates = relevant
+    .map((fixture) => ({
+      ...fixture,
+      kickoff:
+        fixture.kickoffAt && !Number.isNaN(Date.parse(fixture.kickoffAt))
+          ? new Date(fixture.kickoffAt)
+          : null,
+    }))
+    .filter((fixture) => fixture.kickoff);
+
+  withDates.sort(
+    (a, b) => (a.kickoff?.getTime() ?? 0) - (b.kickoff?.getTime() ?? 0)
+  );
+
+  const now = Date.now();
+  const past = withDates.filter(
+    (fixture) => (fixture.kickoff?.getTime() ?? 0) <= now
+  );
+
+  return past[past.length - 1] ?? withDates[0] ?? null;
 };
 
 export const refreshPlayFootballSnapshot = async (season: Season) => {

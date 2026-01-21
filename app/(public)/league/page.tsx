@@ -1,6 +1,7 @@
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import {
   filterFixturesForTeam,
+  formatPlayFootballTeamName,
   getFixtureOpponent,
   getPlayFootballSnapshot,
   isPlayFootballTeam,
@@ -114,7 +115,9 @@ export default async function LeaguePage({ searchParams }: LeaguePageProps) {
                     <span className="text-[11px] font-semibold">
                       {row.position}
                     </span>
-                    <span className="text-xs font-semibold">{row.team}</span>
+                    <span className="text-xs font-semibold">
+                      {formatPlayFootballTeamName(row.team)}
+                    </span>
                     <span className="text-right text-xs">{row.played}</span>
                     <span className="text-right text-xs">{row.goalDiff}</span>
                     <span className="text-right text-xs">{row.goalsFor}</span>
