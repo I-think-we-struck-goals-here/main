@@ -88,7 +88,9 @@ export default async function AdminNewMatchPage({
     : null;
   const teamName = getPlayFootballTeamName(defaultSeason);
   const recentFixture = playFootball
-    ? getMostRecentFixtureForTeam(playFootball.fixtures, teamName)
+    ? getMostRecentFixtureForTeam(playFootball.fixtures, teamName, {
+        graceMs: 12 * 60 * 60 * 1000,
+      })
     : null;
   const defaultOpponent = recentFixture
     ? isPlayFootballTeam(recentFixture.home, defaultSeason)

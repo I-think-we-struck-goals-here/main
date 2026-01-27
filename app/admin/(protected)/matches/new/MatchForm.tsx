@@ -68,7 +68,7 @@ export default function MatchForm({
   const playedAtValue = initialMatch?.playedAt ?? defaultPlayedAt;
   const venueValue = initialMatch?.venue ?? "";
   const goalsAgainstValue = initialMatch?.goalsAgainst ?? 0;
-  const matchCostValue = initialMatch?.matchCostGbp ?? "70.00";
+  const matchCostValue = initialMatch?.matchCostGbp ?? "70.95";
   const canCopyLast = lastMatchPlayerIds.length > 0;
 
   const [rows, setRows] = useState<AppearanceRow[]>(() =>
@@ -245,6 +245,12 @@ export default function MatchForm({
 
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-semibold">Appearances</h2>
+        <div className="mt-4 hidden items-center rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/50 sm:grid sm:grid-cols-[2fr_repeat(3,1fr)]">
+          <span>Player</span>
+          <span>Played</span>
+          <span>Goals</span>
+          <span>Assists</span>
+        </div>
         <div className="mt-4 grid gap-3">
           {rows.map((row) => {
             const isDisabled = !row.played;

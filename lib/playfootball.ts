@@ -493,7 +493,8 @@ export const getNextFixtureForTeam = (
 
 export const getMostRecentFixtureForTeam = (
   fixtures: LeagueFixture[],
-  teamName = getPlayFootballTeamName()
+  teamName = getPlayFootballTeamName(),
+  options: { graceMs?: number } = {}
 ) => {
   const normalizedTeam = normalizeTeamName(teamName);
   const relevant = fixtures.filter((fixture) => {
@@ -518,11 +519,17 @@ export const getMostRecentFixtureForTeam = (
   );
 
   const now = Date.now();
-  const past = withDates.filter(
+  const graceMs = options.graceMs ?? 12 * 60 * 60 * 1000;
+  const cutoff = now + graceMs;
+
+  const eligible = withDates.filter(
+    (fixture) => (fixture.kickoff?.getTime() ?? 0) <= cutoff
+  );
+  const past = eligible.filter(
     (fixture) => (fixture.kickoff?.getTime() ?? 0) <= now
   );
 
-  return past[past.length - 1] ?? withDates[0] ?? null;
+  return past[past.length - 1] ?? eligible[eligible.length - 1] ?? withDates[0] ?? null;
 };
 
 export const refreshPlayFootballSnapshot = async (season: Season) => {

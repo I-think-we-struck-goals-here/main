@@ -44,7 +44,7 @@ export const POST = async (
   const goalsFor = parseNumber(formData.get("goalsFor"));
   const goalsAgainst = parseNumber(formData.get("goalsAgainst"));
   const matchCostRaw = String(formData.get("matchCostGbp") ?? "").trim();
-  const matchCostGbp = matchCostRaw.length ? matchCostRaw : "70.00";
+  const matchCostGbp = matchCostRaw.length ? matchCostRaw : "70.95";
 
   if (!Number.isFinite(seasonId) || !playedAtRaw || !opponent) {
     return redirectTo(request, `/admin/matches/${matchId}?error=missing`);
