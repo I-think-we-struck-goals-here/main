@@ -15,6 +15,8 @@ export type LeagueFixture = {
   pitch: string | null;
   home: string;
   away: string;
+  scoreHome: number | null;
+  scoreAway: number | null;
   kickoffAt: string | null;
 };
 
@@ -74,6 +76,19 @@ export const formatPlayFootballTeamName = (value: string) => {
   const withoutMarkdown = value.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
   const withoutUrls = withoutMarkdown.replace(/https?:\/\/\S+/g, "").trim();
   return withoutUrls || value.trim();
+};
+
+const scoreRegex = /(\d{1,2})\s*[-–]\s*(\d{1,2})/;
+
+const extractScoreFromLine = (line: string) => {
+  const match = line.match(scoreRegex);
+  if (!match) {
+    return { scoreHome: null, scoreAway: null };
+  }
+  return {
+    scoreHome: Number(match[1]),
+    scoreAway: Number(match[2]),
+  };
 };
 
 const parseStandingsTable = (lines: string[]) => {
@@ -237,14 +252,27 @@ const parseLoungeFixtures = (lines: string[]) => {
     const time = dateTimeMatch[2];
     const homeLine = nextNonEmpty(lines, index + 1);
     const vsLine = homeLine ? nextNonEmpty(lines, homeLine.index + 1) : null;
-    const awayLine = vsLine ? nextNonEmpty(lines, vsLine.index + 1) : null;
+    let awayLine = vsLine ? nextNonEmpty(lines, vsLine.index + 1) : null;
 
     if (!homeLine || !vsLine || !awayLine) {
       continue;
     }
 
-    if (vsLine.value.toLowerCase() !== "vs") {
-      continue;
+    const vsValue = vsLine.value.toLowerCase();
+    let scoreHome: number | null = null;
+    let scoreAway: number | null = null;
+
+    if (vsValue !== "vs") {
+      const scoreMatch = vsLine.value.match(scoreRegex);
+      if (!scoreMatch) {
+        continue;
+      }
+      scoreHome = Number(scoreMatch[1]);
+      scoreAway = Number(scoreMatch[2]);
+      awayLine = nextNonEmpty(lines, vsLine.index + 1);
+      if (!awayLine) {
+        continue;
+      }
     }
 
     const home = homeLine.value;
@@ -261,6 +289,8 @@ const parseLoungeFixtures = (lines: string[]) => {
       pitch: null,
       home,
       away,
+      scoreHome,
+      scoreAway,
       kickoffAt: parseFixtureDateTime(dateLabel, time),
     });
   }
@@ -288,7 +318,7 @@ const parseFixtures = (markdown: string): LeagueFixture[] => {
     }
 
     const match = line.match(
-      /^(\d{1,2}:\d{2})\s+([^\[]+)?\[([^\]]+)\]\([^\)]+\)\s*vs?\s*\[([^\]]+)\]/i
+      /^(\d{1,2}:\d{2})\s+([^\[]+)?\[([^\]]+)\]\([^\)]+\)\s*(?:(\d{1,2})\s*[-–]\s*(\d{1,2}))?\s*vs?\s*\[([^\]]+)\]/i
     );
     if (!match) {
       continue;
@@ -297,10 +327,16 @@ const parseFixtures = (markdown: string): LeagueFixture[] => {
     const time = match[1];
     const pitch = match[2]?.trim() || null;
     const home = match[3]?.trim();
-    const away = match[4]?.trim();
+    const away = match[6]?.trim();
     if (!home || !away) {
       continue;
     }
+    const scoreHome = match[4] ? Number(match[4]) : null;
+    const scoreAway = match[5] ? Number(match[5]) : null;
+    const fallbackScore =
+      scoreHome === null || scoreAway === null
+        ? extractScoreFromLine(line)
+        : { scoreHome, scoreAway };
 
     const key = `${currentDate}|${time}|${home}|${away}`;
     if (seen.has(key)) {
@@ -314,6 +350,8 @@ const parseFixtures = (markdown: string): LeagueFixture[] => {
       pitch,
       home,
       away,
+      scoreHome: fallbackScore.scoreHome,
+      scoreAway: fallbackScore.scoreAway,
       kickoffAt: parseFixtureDateTime(currentDate, time),
     });
   }
@@ -327,6 +365,9 @@ const parseFixtures = (markdown: string): LeagueFixture[] => {
 
 const normalizeTeamName = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+export const normalizePlayFootballTeamName = (value: string) =>
+  normalizeTeamName(value);
 
 export const getPlayFootballTeamName = (season?: Season | null) =>
   season?.playfootballTeamName?.trim() || "I think we struck goals here";
@@ -370,12 +411,205 @@ export const getFixtureOpponent = (
   return { opponent: `${fixture.home} vs ${fixture.away}`, venueLabel: "" };
 };
 
+export type TeamResult = {
+  opponent: string;
+  outcome: "W" | "D" | "L";
+  scored: number;
+  conceded: number;
+  kickoffAt: string | null;
+};
+
+export type TeamElo = {
+  rating: number;
+  games: number;
+  wins: number;
+  draws: number;
+  losses: number;
+};
+
+type ResultsOptions = {
+  activeTeams?: string[];
+  ignoredTeams?: string[];
+  forfeitTeam?: string;
+  forfeitScore?: [number, number];
+};
+
+const createTeamFilter = (options: ResultsOptions = {}) => {
+  const activeSet = options.activeTeams
+    ? new Set(options.activeTeams.map(normalizeTeamName))
+    : null;
+  const ignoredSet = options.ignoredTeams
+    ? new Set(options.ignoredTeams.map(normalizeTeamName))
+    : null;
+  const forfeitNorm = options.forfeitTeam
+    ? normalizeTeamName(options.forfeitTeam)
+    : null;
+  const forfeitScore = options.forfeitScore ?? [8, 0];
+
+  return (fixture: LeagueFixture) => {
+    if (fixture.scoreHome === null || fixture.scoreAway === null) {
+      return false;
+    }
+    const homeNorm = normalizeTeamName(fixture.home);
+    const awayNorm = normalizeTeamName(fixture.away);
+
+    if (activeSet && (!activeSet.has(homeNorm) || !activeSet.has(awayNorm))) {
+      return false;
+    }
+    if (ignoredSet && (ignoredSet.has(homeNorm) || ignoredSet.has(awayNorm))) {
+      return false;
+    }
+    if (forfeitNorm && (homeNorm === forfeitNorm || awayNorm === forfeitNorm)) {
+      const [forfeitHome, forfeitAway] = forfeitScore;
+      const isForfeit =
+        (fixture.scoreHome === forfeitHome &&
+          fixture.scoreAway === forfeitAway) ||
+        (fixture.scoreHome === forfeitAway &&
+          fixture.scoreAway === forfeitHome);
+      if (isForfeit) {
+        return false;
+      }
+    }
+    return true;
+  };
+};
+
+const getKickoffMs = (fixture: LeagueFixture) => {
+  if (!fixture.kickoffAt) {
+    return null;
+  }
+  const parsed = Date.parse(fixture.kickoffAt);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+export const buildTeamResults = (
+  fixtures: LeagueFixture[],
+  options: ResultsOptions = {}
+) => {
+  const includeFixture = createTeamFilter(options);
+  const resultsByTeam = new Map<string, TeamResult[]>();
+
+  for (const fixture of fixtures) {
+    if (!includeFixture(fixture)) {
+      continue;
+    }
+    const homeNorm = normalizeTeamName(fixture.home);
+    const awayNorm = normalizeTeamName(fixture.away);
+    const homeScore = fixture.scoreHome ?? 0;
+    const awayScore = fixture.scoreAway ?? 0;
+    const outcomeHome =
+      homeScore > awayScore ? "W" : homeScore < awayScore ? "L" : "D";
+    const outcomeAway =
+      homeScore > awayScore ? "L" : homeScore < awayScore ? "W" : "D";
+
+    const homeResults = resultsByTeam.get(homeNorm) ?? [];
+    homeResults.push({
+      opponent: formatPlayFootballTeamName(fixture.away),
+      outcome: outcomeHome,
+      scored: homeScore,
+      conceded: awayScore,
+      kickoffAt: fixture.kickoffAt,
+    });
+    resultsByTeam.set(homeNorm, homeResults);
+
+    const awayResults = resultsByTeam.get(awayNorm) ?? [];
+    awayResults.push({
+      opponent: formatPlayFootballTeamName(fixture.home),
+      outcome: outcomeAway,
+      scored: awayScore,
+      conceded: homeScore,
+      kickoffAt: fixture.kickoffAt,
+    });
+    resultsByTeam.set(awayNorm, awayResults);
+  }
+
+  for (const [team, results] of resultsByTeam.entries()) {
+    results.sort((a, b) => {
+      const aMs = a.kickoffAt ? Date.parse(a.kickoffAt) : 0;
+      const bMs = b.kickoffAt ? Date.parse(b.kickoffAt) : 0;
+      return bMs - aMs;
+    });
+    resultsByTeam.set(team, results);
+  }
+
+  return resultsByTeam;
+};
+
+export const computeTeamElo = (
+  fixtures: LeagueFixture[],
+  options: ResultsOptions = {}
+) => {
+  const includeFixture = createTeamFilter(options);
+  const ratings = new Map<string, TeamElo>();
+
+  const completed = fixtures
+    .filter(includeFixture)
+    .slice()
+    .sort((a, b) => {
+      const aMs = getKickoffMs(a) ?? 0;
+      const bMs = getKickoffMs(b) ?? 0;
+      return aMs - bMs;
+    });
+
+  const ensureTeam = (name: string) => {
+    const normalized = normalizeTeamName(name);
+    if (!ratings.has(normalized)) {
+      ratings.set(normalized, {
+        rating: 1000,
+        games: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+      });
+    }
+    return ratings.get(normalized)!;
+  };
+
+  for (const fixture of completed) {
+    const home = ensureTeam(fixture.home);
+    const away = ensureTeam(fixture.away);
+
+    const homeScore = fixture.scoreHome ?? 0;
+    const awayScore = fixture.scoreAway ?? 0;
+    const diff = Math.abs(homeScore - awayScore);
+    const margin = diff <= 1 ? 1 : 1 + Math.min(3, diff - 1) * 0.25;
+    const expectedHome =
+      1 / (1 + Math.pow(10, (away.rating - home.rating) / 400));
+    const actualHome =
+      homeScore > awayScore ? 1 : homeScore < awayScore ? 0 : 0.5;
+    const kFactor = 20;
+    const delta = kFactor * margin * (actualHome - expectedHome);
+
+    home.rating += delta;
+    away.rating -= delta;
+    home.games += 1;
+    away.games += 1;
+
+    if (actualHome === 1) {
+      home.wins += 1;
+      away.losses += 1;
+    } else if (actualHome === 0) {
+      home.losses += 1;
+      away.wins += 1;
+    } else {
+      home.draws += 1;
+      away.draws += 1;
+    }
+  }
+
+  return ratings;
+};
+
 const normalizeSnapshot = (
   snapshot: ExternalLeagueSnapshot
 ): PlayFootballSnapshot => {
   const payload = snapshot.payloadJson as Partial<PlayFootballSnapshot>;
   return {
-    fixtures: payload.fixtures ?? [],
+    fixtures: (payload.fixtures ?? []).map((fixture) => ({
+      ...fixture,
+      scoreHome: fixture.scoreHome ?? null,
+      scoreAway: fixture.scoreAway ?? null,
+    })),
     standings: payload.standings ?? [],
     fetchedAt: snapshot.fetchedAt.toISOString(),
   };
