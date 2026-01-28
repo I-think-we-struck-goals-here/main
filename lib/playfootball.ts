@@ -451,6 +451,26 @@ export type TeamResult = {
   kickoffAt: string | null;
 };
 
+export const getTeamAverages = (results: TeamResult[]) => {
+  if (!results.length) {
+    return null;
+  }
+  const totals = results.reduce(
+    (acc, result) => {
+      acc.scored += result.scored;
+      acc.conceded += result.conceded;
+      return acc;
+    },
+    { scored: 0, conceded: 0 }
+  );
+  const games = results.length;
+  return {
+    scoredPerGame: totals.scored / games,
+    concededPerGame: totals.conceded / games,
+    games,
+  };
+};
+
 export type TeamElo = {
   rating: number;
   games: number;

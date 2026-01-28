@@ -4,13 +4,24 @@ import { formatSignedGbp } from "@/lib/money";
 import {
   filterFixturesForTeam,
   formatPlayFootballTeamName,
+  getTeamAverages,
   getFixtureOpponent,
   getPlayFootballSnapshot,
   isPlayFootballTeam,
+  normalizePlayFootballTeamName,
+  buildTeamResults,
 } from "@/lib/playfootball";
 import { getActiveSeason, getSeasonLeaderboard } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
+
+const FORFEIT_TEAM = "Call Now To Enter 01702 414079";
+
+const outcomeStyles: Record<"W" | "D" | "L", string> = {
+  W: "bg-emerald-500/15 text-emerald-700 border-emerald-500/40",
+  D: "bg-amber-400/20 text-amber-700 border-amber-400/40",
+  L: "bg-rose-500/15 text-rose-700 border-rose-500/40",
+};
 
 export default async function HomePage() {
   const activeSeason = await getActiveSeason();
@@ -52,6 +63,14 @@ export default async function HomePage() {
     playFootball?.fixtures ?? [],
     activeSeason
   );
+  const activeTeams = standings.map((row) =>
+    formatPlayFootballTeamName(row.team)
+  );
+  const resultsByTeam = buildTeamResults(playFootball?.fixtures ?? [], {
+    activeTeams,
+    forfeitTeam: FORFEIT_TEAM,
+    forfeitScore: [8, 0],
+  });
   const hasPlayFootball = Boolean(playFootball);
   const lastUpdated = playFootball?.fetchedAt
     ? new Date(playFootball.fetchedAt).toLocaleString("en-GB", {
@@ -136,10 +155,11 @@ export default async function HomePage() {
           {upcomingFixtures.length ? (
             <div className="mt-4 flex flex-col gap-3 text-sm text-black/70">
               {upcomingFixtures.map((fixture) => {
-                const { opponent, venueLabel } = getFixtureOpponent(
-                  fixture,
-                  activeSeason
-                );
+                const { opponent } = getFixtureOpponent(fixture, activeSeason);
+                const opponentName = formatPlayFootballTeamName(opponent);
+                const opponentNorm = normalizePlayFootballTeamName(opponentName);
+                const form = resultsByTeam.get(opponentNorm) ?? [];
+                const averages = getTeamAverages(form);
                 return (
                   <div
                     key={`${fixture.dateLabel}-${fixture.time}-${fixture.home}-${fixture.away}`}
@@ -149,13 +169,34 @@ export default async function HomePage() {
                       {fixture.dateLabel} · {fixture.time}
                     </p>
                     <p className="mt-2 text-sm font-semibold text-black">
-                      {opponent}
+                      {opponentName}
                     </p>
-                    {venueLabel ? (
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-black/40">
-                        {venueLabel}
-                      </p>
-                    ) : null}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {form.length ? (
+                        form.slice(0, 5).map((result, index) => (
+                          <span
+                            key={`${result.opponent}-${index}`}
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] ${outcomeStyles[result.outcome]}`}
+                          >
+                            {result.outcome}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-black/40">
+                          No recent results
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 text-xs text-black/50">
+                      {averages ? (
+                        <>
+                          Avg GF {averages.scoredPerGame.toFixed(1)} · Avg GA{" "}
+                          {averages.concededPerGame.toFixed(1)}
+                        </>
+                      ) : (
+                        "Avg GF — · Avg GA —"
+                      )}
+                    </div>
                   </div>
                 );
               })}

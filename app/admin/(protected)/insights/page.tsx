@@ -3,6 +3,7 @@ import {
   computeTeamElo,
   filterFixturesForTeam,
   formatPlayFootballTeamName,
+  getTeamAverages,
   getFixtureOpponent,
   getPlayFootballSnapshot,
   getPlayFootballTeamName,
@@ -128,6 +129,7 @@ export default async function AdminInsightsPage() {
             const opponentNorm = normalizePlayFootballTeamName(opponentName);
             const form = resultsByTeam.get(opponentNorm) ?? [];
             const opponentElo = eloByTeam.get(opponentNorm);
+            const averages = getTeamAverages(form);
             const confidence =
               ourElo && opponentElo
                 ? Math.min(
@@ -171,6 +173,16 @@ export default async function AdminInsightsPage() {
                     ))
                   ) : (
                     <span className="text-xs text-white/40">No recent results</span>
+                  )}
+                </div>
+                <div className="mt-3 text-xs text-white/50">
+                  {averages ? (
+                    <>
+                      Avg GF {averages.scoredPerGame.toFixed(1)} · Avg GA{" "}
+                      {averages.concededPerGame.toFixed(1)}
+                    </>
+                  ) : (
+                    "Avg GF — · Avg GA —"
                   )}
                 </div>
               </div>
