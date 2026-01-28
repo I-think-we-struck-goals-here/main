@@ -75,7 +75,7 @@ export default async function StatsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="rounded-[32px] border border-black/10 bg-white/80 p-6 shadow-sm">
+      <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <p className="text-xs uppercase tracking-[0.3em] text-black/40">
             League stats
@@ -88,8 +88,8 @@ export default async function StatsPage() {
             included, and the 8-0 forfeits vs "{FORFEIT_TEAM}" are ignored.
           </p>
         </div>
-        <div className="mt-6 grid gap-2 text-sm">
-          <div className="grid grid-cols-[1.5fr_80px_80px] items-center text-[10px] uppercase tracking-[0.2em] text-black/40 md:grid-cols-[1.5fr_80px_80px_1fr]">
+        <div className="grid gap-2 text-sm">
+          <div className="grid grid-cols-[1.6fr_72px_52px] items-center text-[10px] uppercase tracking-[0.2em] text-black/40 md:grid-cols-[1.5fr_80px_80px_1fr]">
             <span>Team</span>
             <span className="text-right">Elo</span>
             <span className="text-right">GP</span>
@@ -100,7 +100,7 @@ export default async function StatsPage() {
             return (
               <div
                 key={row.normalized}
-                className={`grid grid-cols-[1.5fr_80px_80px] items-center rounded-2xl border px-3 py-2 md:grid-cols-[1.5fr_80px_80px_1fr] ${
+                className={`grid grid-cols-[1.6fr_72px_52px] items-center rounded-2xl border px-3 py-2 md:grid-cols-[1.5fr_80px_80px_1fr] ${
                   isTeam
                     ? "border-lime-300/60 bg-lime-100/80"
                     : "border-black/10 bg-white"
