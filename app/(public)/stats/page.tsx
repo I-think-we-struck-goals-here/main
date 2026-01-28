@@ -82,10 +82,8 @@ export default async function StatsPage() {
           </p>
           <h1 className="text-2xl font-semibold">Elo ratings</h1>
           <p className="text-sm text-black/60">
-            Elo starts every team at 1000. Each recorded result (in date order)
-            shifts ratings using K=20 and a small goal-difference multiplier.
-            Draws count as 0.5. Only teams in the current standings are
-            included, and the 8-0 forfeits vs "{FORFEIT_TEAM}" are ignored.
+            Elo updates from every recorded result (K=20), ignoring 8-0
+            forfeits vs "{FORFEIT_TEAM}".
           </p>
         </div>
         <div className="grid gap-2 text-sm">
