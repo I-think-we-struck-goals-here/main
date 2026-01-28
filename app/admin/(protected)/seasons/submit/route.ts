@@ -58,6 +58,7 @@ export const POST = async (request: Request) => {
     }
 
     const sourceUrlFixtures = parseText(formData.get("sourceUrlFixtures"));
+    const sourceUrlResults = parseText(formData.get("sourceUrlResults"));
     const sourceUrlStandings = parseText(formData.get("sourceUrlStandings"));
     const playfootballTeamName = parseText(formData.get("playfootballTeamName"));
 
@@ -65,6 +66,7 @@ export const POST = async (request: Request) => {
       .update(seasons)
       .set({
         sourceUrlFixtures,
+        sourceUrlResults,
         sourceUrlStandings,
         playfootballTeamName,
       })
@@ -137,6 +139,7 @@ export const POST = async (request: Request) => {
   const endDate = parseDate(formData.get("endDate"));
   const isActive = formData.get("isActive") === "on";
   const sourceUrlFixtures = parseText(formData.get("sourceUrlFixtures"));
+  const sourceUrlResults = parseText(formData.get("sourceUrlResults"));
   const sourceUrlStandings = parseText(formData.get("sourceUrlStandings"));
   const playfootballTeamName = parseText(formData.get("playfootballTeamName"));
 
@@ -155,6 +158,7 @@ export const POST = async (request: Request) => {
         endDate,
         isActive,
         sourceUrlFixtures,
+        sourceUrlResults,
         sourceUrlStandings,
         playfootballTeamName,
       })

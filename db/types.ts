@@ -7,6 +7,7 @@ import {
   matches,
   payments,
   players,
+  playfootballFixturesLog,
   seasons,
 } from "./schema";
 
@@ -30,6 +31,13 @@ export type ExternalLeagueSnapshot = InferSelectModel<
 >;
 export type NewExternalLeagueSnapshot = InferInsertModel<
   typeof externalLeagueSnapshots
+>;
+
+export type PlayfootballFixtureLog = InferSelectModel<
+  typeof playfootballFixturesLog
+>;
+export type NewPlayfootballFixtureLog = InferInsertModel<
+  typeof playfootballFixturesLog
 >;
 
 export type AdminLoginAttempt = InferSelectModel<typeof adminLoginAttempts>;

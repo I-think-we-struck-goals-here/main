@@ -1,9 +1,9 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { externalLeagueSnapshots } from "@/db/schema";
+import { externalLeagueSnapshots, playfootballFixturesLog } from "@/db/schema";
 import type { ExternalLeagueSnapshot, Season } from "@/db/types";
 
 const JINA_BASE_URL = "https://r.jina.ai/http://";
@@ -79,6 +79,7 @@ export const formatPlayFootballTeamName = (value: string) => {
 };
 
 const scoreRegex = /(\d{1,2})\s*[-–]\s*(\d{1,2})/;
+const scoreTokenRegex = /^\d{1,2}$/;
 
 const extractScoreFromLine = (line: string) => {
   const match = line.match(scoreRegex);
@@ -251,28 +252,59 @@ const parseLoungeFixtures = (lines: string[]) => {
     const dateLabel = dateTimeMatch[1];
     const time = dateTimeMatch[2];
     const homeLine = nextNonEmpty(lines, index + 1);
-    const vsLine = homeLine ? nextNonEmpty(lines, homeLine.index + 1) : null;
-    let awayLine = vsLine ? nextNonEmpty(lines, vsLine.index + 1) : null;
-
-    if (!homeLine || !vsLine || !awayLine) {
+    if (!homeLine) {
       continue;
     }
 
-    const vsValue = vsLine.value.toLowerCase();
+    const firstAfter = nextNonEmpty(lines, homeLine.index + 1);
+    if (!firstAfter) {
+      continue;
+    }
+
+    let awayLine: { value: string; index: number } | null = null;
     let scoreHome: number | null = null;
     let scoreAway: number | null = null;
 
-    if (vsValue !== "vs") {
-      const scoreMatch = vsLine.value.match(scoreRegex);
-      if (!scoreMatch) {
-        continue;
+    const firstValue = firstAfter.value.trim();
+    const firstLower = firstValue.toLowerCase();
+
+    if (firstLower === "vs") {
+      awayLine = nextNonEmpty(lines, firstAfter.index + 1);
+    } else if (scoreTokenRegex.test(firstValue)) {
+      const vsLine = nextNonEmpty(lines, firstAfter.index + 1);
+      if (vsLine?.value.toLowerCase() === "vs") {
+        const scoreAwayLine = nextNonEmpty(lines, vsLine.index + 1);
+        awayLine = scoreAwayLine
+          ? nextNonEmpty(lines, scoreAwayLine.index + 1)
+          : null;
+        if (scoreAwayLine && scoreTokenRegex.test(scoreAwayLine.value)) {
+          scoreHome = Number(firstValue);
+          scoreAway = Number(scoreAwayLine.value);
+        }
+      } else {
+        const scoreMatch = firstValue.match(scoreRegex);
+        if (scoreMatch) {
+          scoreHome = Number(scoreMatch[1]);
+          scoreAway = Number(scoreMatch[2]);
+          awayLine = vsLine;
+        }
       }
-      scoreHome = Number(scoreMatch[1]);
-      scoreAway = Number(scoreMatch[2]);
-      awayLine = nextNonEmpty(lines, vsLine.index + 1);
-      if (!awayLine) {
-        continue;
+    } else {
+      const scoreMatch = firstValue.match(scoreRegex);
+      if (scoreMatch) {
+        scoreHome = Number(scoreMatch[1]);
+        scoreAway = Number(scoreMatch[2]);
+        const maybeVs = nextNonEmpty(lines, firstAfter.index + 1);
+        if (maybeVs?.value.toLowerCase() === "vs") {
+          awayLine = nextNonEmpty(lines, maybeVs.index + 1);
+        } else {
+          awayLine = maybeVs;
+        }
       }
+    }
+
+    if (!awayLine) {
+      continue;
     }
 
     const home = homeLine.value;
@@ -615,18 +647,109 @@ const normalizeSnapshot = (
   };
 };
 
+const getFixtureMergeKey = (fixture: LeagueFixture) => {
+  const teams = [fixture.home, fixture.away]
+    .map((team) => normalizeTeamName(team))
+    .sort()
+    .join("|");
+  const kickoff = fixture.kickoffAt ?? `${fixture.dateLabel}|${fixture.time}`;
+  return `${teams}|${kickoff}`;
+};
+
+const mergeFixtures = (
+  fixtures: LeagueFixture[],
+  results: LeagueFixture[]
+) => {
+  const merged = new Map<string, LeagueFixture>();
+
+  for (const fixture of fixtures) {
+    merged.set(getFixtureMergeKey(fixture), fixture);
+  }
+
+  for (const fixture of results) {
+    const key = getFixtureMergeKey(fixture);
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, fixture);
+      continue;
+    }
+
+    merged.set(key, {
+      ...existing,
+      ...fixture,
+      scoreHome: fixture.scoreHome ?? existing.scoreHome,
+      scoreAway: fixture.scoreAway ?? existing.scoreAway,
+      pitch: fixture.pitch ?? existing.pitch,
+      kickoffAt: fixture.kickoffAt ?? existing.kickoffAt,
+    });
+  }
+
+  return Array.from(merged.values());
+};
+
+const upsertPlayFootballFixtureLog = async (
+  season: Season,
+  fixtures: LeagueFixture[]
+) => {
+  if (!fixtures.length) {
+    return;
+  }
+
+  const now = new Date();
+  const rows = fixtures.map((fixture) => ({
+    seasonId: season.id,
+    fixtureKey: getFixtureMergeKey(fixture),
+    kickoffAt:
+      fixture.kickoffAt && !Number.isNaN(Date.parse(fixture.kickoffAt))
+        ? new Date(fixture.kickoffAt)
+        : null,
+    dateLabel: fixture.dateLabel,
+    time: fixture.time,
+    pitch: fixture.pitch,
+    home: fixture.home,
+    away: fixture.away,
+    scoreHome: fixture.scoreHome,
+    scoreAway: fixture.scoreAway,
+    updatedAt: now,
+    lastSeenAt: now,
+  }));
+
+  await db
+    .insert(playfootballFixturesLog)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [
+        playfootballFixturesLog.seasonId,
+        playfootballFixturesLog.fixtureKey,
+      ],
+      set: {
+        kickoffAt: sql`excluded.kickoff_at`,
+        dateLabel: sql`excluded.date_label`,
+        time: sql`excluded.time`,
+        pitch: sql`excluded.pitch`,
+        home: sql`excluded.home`,
+        away: sql`excluded.away`,
+        scoreHome: sql`excluded.score_home`,
+        scoreAway: sql`excluded.score_away`,
+        updatedAt: now,
+        lastSeenAt: now,
+      },
+    });
+};
+
 const getSourceUrls = (season: Season) => {
   const fixturesUrl = season.sourceUrlFixtures?.trim() || null;
+  const resultsUrl = season.sourceUrlResults?.trim() || null;
   const standingsUrl = season.sourceUrlStandings?.trim() || null;
-  return { fixturesUrl, standingsUrl };
+  return { fixturesUrl, resultsUrl, standingsUrl };
 };
 
 export const getPlayFootballSnapshot = async (
   season: Season,
   options: { force?: boolean } = {}
 ): Promise<PlayFootballSnapshot | null> => {
-  const { fixturesUrl, standingsUrl } = getSourceUrls(season);
-  if (!fixturesUrl && !standingsUrl) {
+  const { fixturesUrl, resultsUrl, standingsUrl } = getSourceUrls(season);
+  if (!fixturesUrl && !resultsUrl && !standingsUrl) {
     return null;
   }
 
@@ -645,16 +768,29 @@ export const getPlayFootballSnapshot = async (
   }
 
   try {
-    const [fixturesMarkdown, standingsMarkdown] = await Promise.all([
-      fixturesUrl ? fetchMarkdown(fixturesUrl) : Promise.resolve(""),
-      standingsUrl ? fetchMarkdown(standingsUrl) : Promise.resolve(""),
-    ]);
+    const [fixturesMarkdown, resultsMarkdown, standingsMarkdown] =
+      await Promise.all([
+        fixturesUrl ? fetchMarkdown(fixturesUrl) : Promise.resolve(""),
+        resultsUrl ? fetchMarkdown(resultsUrl) : Promise.resolve(""),
+        standingsUrl ? fetchMarkdown(standingsUrl) : Promise.resolve(""),
+      ]);
+
+    const fixtures = fixturesUrl ? parseFixtures(fixturesMarkdown) : [];
+    const results = resultsUrl ? parseFixtures(resultsMarkdown) : [];
 
     const payload: PlayFootballSnapshot = {
-      fixtures: fixturesUrl ? parseFixtures(fixturesMarkdown) : [],
+      fixtures: mergeFixtures(fixtures, results),
       standings: standingsUrl ? parseStandings(standingsMarkdown) : [],
       fetchedAt: new Date().toISOString(),
     };
+
+    if (payload.fixtures.length) {
+      try {
+        await upsertPlayFootballFixtureLog(season, payload.fixtures);
+      } catch (logError) {
+        console.error("PlayFootball log update failed", logError);
+      }
+    }
 
     const [created] = await db
       .insert(externalLeagueSnapshots)

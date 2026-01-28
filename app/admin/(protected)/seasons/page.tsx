@@ -108,6 +108,11 @@ export default async function AdminSeasonsPage({
             placeholder="PlayFootball fixtures URL"
             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm md:col-span-2"
           />
+          <input
+            name="sourceUrlResults"
+            placeholder="PlayFootball results URL (players lounge)"
+            className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm md:col-span-2"
+          />
           <button className="rounded-2xl bg-lime-300 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-slate-900 md:col-span-2">
             Create season
           </button>
@@ -196,6 +201,12 @@ export default async function AdminSeasonsPage({
                   name="sourceUrlFixtures"
                   defaultValue={season.sourceUrlFixtures ?? ""}
                   placeholder="PlayFootball fixtures URL"
+                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm md:col-span-2"
+                />
+                <input
+                  name="sourceUrlResults"
+                  defaultValue={season.sourceUrlResults ?? ""}
+                  placeholder="PlayFootball results URL (players lounge)"
                   className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm md:col-span-2"
                 />
                 <button className="rounded-xl border border-white/10 px-3 py-2 text-xs uppercase tracking-wide text-white/80 hover:border-white/30 hover:text-white md:col-span-2">

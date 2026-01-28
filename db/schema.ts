@@ -22,6 +22,7 @@ export const seasons = pgTable(
     isActive: boolean("is_active").notNull().default(false),
     sourceUrlPlayersLounge: text("source_url_players_lounge"),
     sourceUrlFixtures: text("source_url_fixtures"),
+    sourceUrlResults: text("source_url_results"),
     sourceUrlStandings: text("source_url_standings"),
     playfootballTeamName: text("playfootball_team_name"),
   },
@@ -99,6 +100,40 @@ export const payments = pgTable("payments", {
   amountGbp: numeric("amount_gbp", { precision: 10, scale: 2 }).notNull(),
   note: text("note"),
 });
+
+export const playfootballFixturesLog = pgTable(
+  "playfootball_fixtures_log",
+  {
+    id: serial("id").primaryKey(),
+    seasonId: integer("season_id")
+      .notNull()
+      .references(() => seasons.id, { onDelete: "cascade" }),
+    fixtureKey: text("fixture_key").notNull(),
+    kickoffAt: timestamp("kickoff_at", { withTimezone: true }),
+    dateLabel: text("date_label"),
+    time: text("time"),
+    pitch: text("pitch"),
+    home: text("home").notNull(),
+    away: text("away").notNull(),
+    scoreHome: integer("score_home"),
+    scoreAway: integer("score_away"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    seasonFixtureUnique: uniqueIndex("playfootball_fixtures_unique").on(
+      table.seasonId,
+      table.fixtureKey
+    ),
+  })
+);
 
 export const externalLeagueSnapshots = pgTable("external_league_snapshots", {
   id: serial("id").primaryKey(),
