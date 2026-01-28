@@ -89,18 +89,18 @@ export default async function StatsPage() {
           </p>
         </div>
         <div className="mt-6 grid gap-2 text-sm">
-          <div className="grid grid-cols-[1.5fr_80px_80px_1fr] items-center text-[10px] uppercase tracking-[0.2em] text-black/40">
+          <div className="grid grid-cols-[1.5fr_80px_80px] items-center text-[10px] uppercase tracking-[0.2em] text-black/40 md:grid-cols-[1.5fr_80px_80px_1fr]">
             <span>Team</span>
             <span className="text-right">Elo</span>
             <span className="text-right">GP</span>
-            <span className="text-right">Form</span>
+            <span className="hidden text-right md:block">Form</span>
           </div>
           {teamRows.map((row) => {
             const isTeam = isPlayFootballTeam(row.team, activeSeason);
             return (
               <div
                 key={row.normalized}
-                className={`grid grid-cols-[1.5fr_80px_80px_1fr] items-center rounded-2xl border px-3 py-2 ${
+                className={`grid grid-cols-[1.5fr_80px_80px] items-center rounded-2xl border px-3 py-2 md:grid-cols-[1.5fr_80px_80px_1fr] ${
                   isTeam
                     ? "border-lime-300/60 bg-lime-100/80"
                     : "border-black/10 bg-white"
@@ -115,7 +115,7 @@ export default async function StatsPage() {
                 <span className="text-right text-sm text-black/60">
                   {row.rating?.games ?? 0}
                 </span>
-                <div className="flex justify-end gap-1">
+                <div className="hidden justify-end gap-1 md:flex">
                   {row.form.length ? (
                     row.form.map((result, index) => (
                       <span
