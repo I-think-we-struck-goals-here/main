@@ -1,31 +1,10 @@
-import Link from "next/link";
-
 import { buildMonzoLink, formatSignedGbp } from "@/lib/money";
-import { getActiveSeason, getSeasonLeaderboard } from "@/lib/stats";
+import { getAllTimeLeaderboard } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function MoneyPage() {
-  const activeSeason = await getActiveSeason();
-
-  if (!activeSeason) {
-    return (
-      <section className="rounded-[32px] border border-black/10 bg-white/90 p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold">No season yet</h1>
-        <p className="mt-2 text-sm text-black/60">
-          Create a season in the admin area to start tracking balances.
-        </p>
-        <Link
-          href="/admin/seasons"
-          className="mt-6 inline-flex rounded-full bg-black px-4 py-2 text-xs uppercase tracking-[0.2em] text-white"
-        >
-          Create season
-        </Link>
-      </section>
-    );
-  }
-
-  const leaderboard = await getSeasonLeaderboard(activeSeason.id);
+  const leaderboard = await getAllTimeLeaderboard();
   const rows = [...leaderboard].sort((a, b) => b.owedPence - a.owedPence);
 
   return (
