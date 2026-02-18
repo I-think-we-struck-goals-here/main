@@ -35,10 +35,10 @@ export default async function MoneyPage() {
           Money
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-black">
-          Balances for {activeSeason.name}
+          Outstanding balances
         </h1>
         <p className="mt-2 text-sm text-black/60">
-          Balances for each player this season.
+          Unpaid amounts carried across all seasons.
         </p>
       </section>
 
