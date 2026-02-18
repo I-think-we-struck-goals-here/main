@@ -226,7 +226,7 @@ export const getSeasonLeaderboard = async (seasonId: number) => {
       .from(players)
       .orderBy(players.displayName),
     buildStatsMap(seasonId),
-    buildOwedMap(seasonId),
+    buildOwedMap(),
   ]);
 
   return playerRows.map((player) => {
