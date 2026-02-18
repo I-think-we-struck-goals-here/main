@@ -69,7 +69,7 @@ export default async function AdminPaymentsPage() {
           <div className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold">Quick settle</h2>
             <p className="text-sm text-white/60">
-              One-click full payments for the active season.
+              One-click full payments for total outstanding balances.
             </p>
           </div>
           <div className="mt-4 flex flex-col gap-3">
