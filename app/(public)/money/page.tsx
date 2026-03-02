@@ -1,13 +1,14 @@
 import Link from "next/link";
 
 import { buildMonzoLink, formatSignedGbp } from "@/lib/money";
-import { getAllTimeLeaderboard } from "@/lib/stats";
+import { getOutstandingBalances } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function MoneyPage() {
-  const leaderboard = await getAllTimeLeaderboard();
-  const rows = [...leaderboard].sort((a, b) => b.owedPence - a.owedPence);
+  const rows = [...(await getOutstandingBalances())].sort(
+    (a, b) => b.owedPence - a.owedPence
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,48 +33,54 @@ export default async function MoneyPage() {
           </div>
         </div>
         <div className="mt-4 grid gap-2 text-sm text-black/70">
-          {rows.map((row) => {
-            const showPayButton = row.owedPence > 0;
-            const showCredit = row.owedPence < 0;
-            return (
-              <div
-                key={row.playerId}
-                className="grid grid-cols-[minmax(0,9rem)_auto_auto] items-center gap-2 rounded-2xl border border-black/5 bg-white/70 px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto]"
-              >
-                <Link
-                  href={`/player/${row.handle}`}
-                  className="min-w-0 text-sm font-semibold text-black hover:text-black/70"
+          {rows.length ? (
+            rows.map((row) => {
+              const showPayButton = row.owedPence > 0;
+              const showCredit = row.owedPence < 0;
+              return (
+                <div
+                  key={row.playerId}
+                  className="grid grid-cols-[minmax(0,9rem)_auto_auto] items-center gap-2 rounded-2xl border border-black/5 bg-white/70 px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto_auto]"
                 >
-                  <span className="block truncate">{row.displayName}</span>
-                </Link>
-                <span className="text-right text-sm font-semibold text-black">
-                  {formatSignedGbp(row.owedPence)}
-                </span>
-                <div className="text-right text-[10px] uppercase tracking-[0.2em] md:text-xs">
-                  {showPayButton ? (
-                    <a
-                      href={buildMonzoLink(row.owedPence)}
-                      className="inline-flex whitespace-nowrap rounded-full bg-black px-2 py-2 text-white md:px-3"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <span className="md:hidden">Pay</span>
-                      <span className="hidden md:inline">Settle up</span>
-                    </a>
-                  ) : showCredit ? (
-                    <span className="inline-flex whitespace-nowrap rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
-                      Credit
-                    </span>
-                  ) : (
-                    <span className="inline-flex whitespace-nowrap rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
-                      <span className="md:hidden">Square</span>
-                      <span className="hidden md:inline">All square</span>
-                    </span>
-                  )}
+                  <Link
+                    href={`/player/${row.handle}`}
+                    className="min-w-0 text-sm font-semibold text-black hover:text-black/70"
+                  >
+                    <span className="block truncate">{row.displayName}</span>
+                  </Link>
+                  <span className="text-right text-sm font-semibold text-black">
+                    {formatSignedGbp(row.owedPence)}
+                  </span>
+                  <div className="text-right text-[10px] uppercase tracking-[0.2em] md:text-xs">
+                    {showPayButton ? (
+                      <a
+                        href={buildMonzoLink(row.owedPence)}
+                        className="inline-flex whitespace-nowrap rounded-full bg-black px-2 py-2 text-white md:px-3"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <span className="md:hidden">Pay</span>
+                        <span className="hidden md:inline">Settle up</span>
+                      </a>
+                    ) : showCredit ? (
+                      <span className="inline-flex whitespace-nowrap rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
+                        Credit
+                      </span>
+                    ) : (
+                      <span className="inline-flex whitespace-nowrap rounded-full border border-black/10 px-2 py-2 text-black/60 md:px-3">
+                        <span className="md:hidden">Square</span>
+                        <span className="hidden md:inline">All square</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <p className="rounded-2xl border border-black/5 bg-white/70 px-3 py-3 text-sm text-black/60">
+              No balances yet.
+            </p>
+          )}
         </div>
       </section>
     </div>

@@ -17,6 +17,14 @@ export type PlayerStats = {
   owedPence: number;
 };
 
+export type PlayerBalance = {
+  playerId: number;
+  displayName: string;
+  handle: string;
+  isActive: boolean;
+  owedPence: number;
+};
+
 const buildStatsMap = async (seasonId?: number) => {
   const statsQuery = db
     .select({
@@ -226,7 +234,7 @@ export const getSeasonLeaderboard = async (seasonId: number) => {
       .from(players)
       .orderBy(players.displayName),
     buildStatsMap(seasonId),
-    buildOwedMap(),
+    buildOwedMap(seasonId),
   ]);
 
   return playerRows.map((player) => {
@@ -242,6 +250,24 @@ export const getSeasonLeaderboard = async (seasonId: number) => {
       owedPence: owedMap.get(player.id) ?? 0,
     };
   });
+};
+
+export const getOutstandingBalances = async (): Promise<PlayerBalance[]> => {
+  const [playerRows, owedMap] = await Promise.all([
+    db
+      .select()
+      .from(players)
+      .orderBy(players.displayName),
+    buildOwedMap(),
+  ]);
+
+  return playerRows.map((player) => ({
+    playerId: player.id,
+    displayName: player.displayName,
+    handle: player.handle,
+    isActive: player.isActive,
+    owedPence: owedMap.get(player.id) ?? 0,
+  }));
 };
 
 export const getAllTimeLeaderboard = async () => {
