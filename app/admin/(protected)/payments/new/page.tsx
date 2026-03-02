@@ -39,10 +39,27 @@ export default async function AdminPaymentsPage() {
   );
 
   const activeSeason = seasonRows.find((season) => season.isActive) ?? seasonRows[0];
-  const activeLedger = activeSeason
-    ? ledgerBySeason.get(activeSeason.id) ?? []
+  const seasonsByDate = [...seasonRows].sort((a, b) => {
+    const aStart = a.startDate ?? "";
+    const bStart = b.startDate ?? "";
+    if (aStart === bStart) {
+      return b.id - a.id;
+    }
+    return aStart < bStart ? 1 : -1;
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  const currentSeasonByDate =
+    seasonsByDate.find((season) => {
+      const startsBeforeOrToday = !season.startDate || season.startDate <= today;
+      const endsAfterOrToday = !season.endDate || season.endDate >= today;
+      return startsBeforeOrToday && endsAfterOrToday;
+    }) ?? null;
+  const defaultSeason = currentSeasonByDate ?? activeSeason ?? seasonsByDate[0];
+
+  const quickSettleLedger = defaultSeason
+    ? ledgerBySeason.get(defaultSeason.id) ?? []
     : [];
-  const activeBalances = activeLedger
+  const quickSettleBalances = quickSettleLedger
     .filter((row) => row.isActive && row.owedPence > 0)
     .sort((a, b) => b.owedPence - a.owedPence);
 
@@ -55,7 +72,7 @@ export default async function AdminPaymentsPage() {
     }
   }
 
-  const defaultSeasonId = activeSeason?.id ?? seasonRows[0]?.id ?? null;
+  const defaultSeasonId = defaultSeason?.id ?? seasonRows[0]?.id ?? null;
   const defaultPlayerId = playerRows[0]?.id ?? null;
   const defaultOwedPence =
     defaultSeasonId && defaultPlayerId
@@ -64,17 +81,17 @@ export default async function AdminPaymentsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {activeSeason ? (
+      {defaultSeason ? (
         <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
           <div className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold">Quick settle</h2>
             <p className="text-sm text-white/60">
-              One-click full payments for total outstanding balances.
+              One-click full payments for {defaultSeason.name}.
             </p>
           </div>
           <div className="mt-4 flex flex-col gap-3">
-            {activeBalances.length ? (
-              activeBalances.map((row) => (
+            {quickSettleBalances.length ? (
+              quickSettleBalances.map((row) => (
                 <div
                   key={row.playerId}
                   className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm"
@@ -92,7 +109,7 @@ export default async function AdminPaymentsPage() {
                     <input
                       type="hidden"
                       name="seasonId"
-                      value={activeSeason.id}
+                      value={defaultSeason.id}
                     />
                     <input
                       type="hidden"
