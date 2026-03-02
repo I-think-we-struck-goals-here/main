@@ -38,6 +38,9 @@ export default async function AdminLayout({
             <Link className="hover:text-white" href="/admin/payments/new">
               Log payment
             </Link>
+            <Link className="hover:text-white" href="/admin/payments">
+              Payment totals
+            </Link>
             <Link className="hover:text-white" href="/admin/insights">
               Insights
             </Link>
