@@ -4,12 +4,12 @@ import Script from "next/script";
 import { db } from "@/db";
 import { payments, players, seasons } from "@/db/schema";
 import { formatGbp, penceToPounds } from "@/lib/money";
-import { getSeasonLeaderboard } from "@/lib/stats";
+import { getOutstandingBalances } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentsPage() {
-  const [seasonRows, playerRows, recentPayments] = await Promise.all([
+  const [seasonRows, playerRows, recentPayments, balances] = await Promise.all([
     db.select().from(seasons).orderBy(desc(seasons.isActive), desc(seasons.startDate)),
     db
       .select()
@@ -29,14 +29,8 @@ export default async function AdminPaymentsPage() {
       .innerJoin(seasons, eq(seasons.id, payments.seasonId))
       .orderBy(desc(payments.paidAt))
       .limit(5),
+    getOutstandingBalances(),
   ]);
-
-  const seasonLedgers = await Promise.all(
-    seasonRows.map((season) => getSeasonLeaderboard(season.id))
-  );
-  const ledgerBySeason = new Map(
-    seasonRows.map((season, index) => [season.id, seasonLedgers[index]])
-  );
 
   const activeSeason = seasonRows.find((season) => season.isActive) ?? seasonRows[0];
   const seasonsByDate = [...seasonRows].sort((a, b) => {
@@ -56,27 +50,20 @@ export default async function AdminPaymentsPage() {
     }) ?? null;
   const defaultSeason = currentSeasonByDate ?? activeSeason ?? seasonsByDate[0];
 
-  const quickSettleLedger = defaultSeason
-    ? ledgerBySeason.get(defaultSeason.id) ?? []
-    : [];
-  const quickSettleBalances = quickSettleLedger
+  const quickSettleBalances = balances
     .filter((row) => row.isActive && row.owedPence > 0)
     .sort((a, b) => b.owedPence - a.owedPence);
 
-  const owedBySeason: Record<string, Record<string, number>> = {};
-  for (const [seasonId, ledger] of ledgerBySeason.entries()) {
-    const seasonKey = String(seasonId);
-    owedBySeason[seasonKey] = {};
-    for (const row of ledger) {
-      owedBySeason[seasonKey][String(row.playerId)] = row.owedPence;
-    }
+  const owedByPlayer: Record<string, number> = {};
+  for (const row of balances) {
+    owedByPlayer[String(row.playerId)] = row.owedPence;
   }
 
   const defaultSeasonId = defaultSeason?.id ?? seasonRows[0]?.id ?? null;
   const defaultPlayerId = playerRows[0]?.id ?? null;
   const defaultOwedPence =
-    defaultSeasonId && defaultPlayerId
-      ? owedBySeason[String(defaultSeasonId)]?.[String(defaultPlayerId)] ?? 0
+    defaultPlayerId
+      ? owedByPlayer[String(defaultPlayerId)] ?? 0
       : 0;
 
   return (
@@ -86,7 +73,7 @@ export default async function AdminPaymentsPage() {
           <div className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold">Quick settle</h2>
             <p className="text-sm text-white/60">
-              One-click full payments for {defaultSeason.name}.
+              One-click full payments for total outstanding balances.
             </p>
           </div>
           <div className="mt-4 flex flex-col gap-3">
@@ -141,7 +128,7 @@ export default async function AdminPaymentsPage() {
           method="post"
           className="mt-4 grid gap-3 md:grid-cols-2"
           data-payment-form
-          data-owed-map={JSON.stringify(owedBySeason)}
+          data-owed-map={JSON.stringify(owedByPlayer)}
         >
           <label className="flex flex-col gap-2 text-sm text-white/70">
             Player
@@ -237,17 +224,12 @@ export default async function AdminPaymentsPage() {
           var owed = {};
           try { owed = JSON.parse(owedRaw); } catch (e) { owed = {}; }
           var playerSelect = form.querySelector('[name="playerId"]');
-          var seasonSelect = form.querySelector('[name="seasonId"]');
           var amountInput = form.querySelector('[name="amountGbp"]');
 
           function updateAmount() {
-            if (!playerSelect || !seasonSelect || !amountInput) return;
-            var seasonId = seasonSelect.value;
+            if (!playerSelect || !amountInput) return;
             var playerId = playerSelect.value;
-            var pence = 0;
-            if (owed[seasonId] && owed[seasonId][playerId] !== undefined) {
-              pence = owed[seasonId][playerId];
-            }
+            var pence = owed[playerId] !== undefined ? owed[playerId] : 0;
             if (pence > 0) {
               amountInput.value = (pence / 100).toFixed(2);
             } else {
@@ -256,7 +238,6 @@ export default async function AdminPaymentsPage() {
           }
 
           if (playerSelect) playerSelect.addEventListener('change', updateAmount);
-          if (seasonSelect) seasonSelect.addEventListener('change', updateAmount);
           updateAmount();
         })();
       `}</Script>
