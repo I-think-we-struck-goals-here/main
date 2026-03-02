@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { buildMonzoLink, formatSignedGbp } from "@/lib/money";
 import { getAllTimeLeaderboard } from "@/lib/stats";
 
