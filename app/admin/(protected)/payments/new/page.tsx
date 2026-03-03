@@ -1,20 +1,19 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import Script from "next/script";
 
 import { db } from "@/db";
 import { payments, players, seasons } from "@/db/schema";
-import { formatGbp, penceToPounds } from "@/lib/money";
+import { formatGbp, formatSignedGbp, penceToPounds, poundsToPence } from "@/lib/money";
 import { getOutstandingBalances } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentsPage() {
-  const [seasonRows, playerRows, recentPayments, balances] = await Promise.all([
+  const [seasonRows, playerRows, recentPayments, balances, paymentTotals] = await Promise.all([
     db.select().from(seasons).orderBy(desc(seasons.isActive), desc(seasons.startDate)),
     db
       .select()
       .from(players)
-      .where(eq(players.isActive, true))
       .orderBy(players.displayName),
     db
       .select({
@@ -30,6 +29,13 @@ export default async function AdminPaymentsPage() {
       .orderBy(desc(payments.paidAt))
       .limit(5),
     getOutstandingBalances(),
+    db
+      .select({
+        playerId: payments.playerId,
+        totalPaidGbp: sql<string>`coalesce(sum(${payments.amountGbp}), 0)`,
+      })
+      .from(payments)
+      .groupBy(payments.playerId),
   ]);
 
   const activeSeason = seasonRows.find((season) => season.isActive) ?? seasonRows[0];
@@ -51,7 +57,7 @@ export default async function AdminPaymentsPage() {
   const defaultSeason = currentSeasonByDate ?? activeSeason ?? seasonsByDate[0];
 
   const quickSettleBalances = balances
-    .filter((row) => row.isActive && row.owedPence > 0)
+    .filter((row) => row.owedPence > 0)
     .sort((a, b) => b.owedPence - a.owedPence);
 
   const owedByPlayer: Record<string, number> = {};
@@ -59,8 +65,29 @@ export default async function AdminPaymentsPage() {
     owedByPlayer[String(row.playerId)] = row.owedPence;
   }
 
+  const paidByPlayer: Record<string, number> = {};
+  for (const row of paymentTotals) {
+    paidByPlayer[String(row.playerId)] = poundsToPence(row.totalPaidGbp);
+  }
+
+  const reconciliationRows = balances
+    .map((row) => {
+      const totalPaidPence = paidByPlayer[String(row.playerId)] ?? 0;
+      return {
+        ...row,
+        totalPaidPence,
+        totalChargedPence: totalPaidPence + row.owedPence,
+      };
+    })
+    .filter((row) => row.totalPaidPence !== 0 || row.owedPence !== 0)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
   const defaultSeasonId = defaultSeason?.id ?? seasonRows[0]?.id ?? null;
-  const defaultPlayerId = playerRows[0]?.id ?? null;
+  const defaultPlayerId =
+    quickSettleBalances[0]?.playerId ??
+    playerRows.find((player) => player.isActive)?.id ??
+    playerRows[0]?.id ??
+    null;
   const defaultOwedPence =
     defaultPlayerId
       ? owedByPlayer[String(defaultPlayerId)] ?? 0
@@ -90,6 +117,11 @@ export default async function AdminPaymentsPage() {
                     <span className="text-xs text-white/60">
                       Owes {formatGbp(row.owedPence)}
                     </span>
+                    {!row.isActive ? (
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-amber-200/80">
+                        Inactive
+                      </span>
+                    ) : null}
                   </div>
                   <form action="/admin/payments/new/submit" method="post">
                     <input type="hidden" name="playerId" value={row.playerId} />
@@ -140,6 +172,7 @@ export default async function AdminPaymentsPage() {
               {playerRows.map((player) => (
                 <option key={player.id} value={player.id}>
                   {player.displayName}
+                  {!player.isActive ? " (inactive)" : ""}
                 </option>
               ))}
             </select>
@@ -181,6 +214,71 @@ export default async function AdminPaymentsPage() {
             Save payment
           </button>
         </form>
+      </section>
+
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <h2 className="text-lg font-semibold">Paid vs outstanding</h2>
+        <p className="mt-1 text-sm text-white/60">
+          Totals across all seasons, by player.
+        </p>
+        <div className="mt-4 flex flex-col gap-3">
+          {reconciliationRows.length ? (
+            reconciliationRows.map((row) => (
+              <div
+                key={row.playerId}
+                className="grid grid-cols-1 gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm md:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-white">
+                    {row.displayName}
+                  </p>
+                  <p className="text-xs text-white/50">
+                    Charged {formatGbp(row.totalChargedPence)}
+                    {!row.isActive ? " • inactive" : ""}
+                  </p>
+                </div>
+                <p className="text-right text-white/80">
+                  Paid {formatGbp(row.totalPaidPence)}
+                </p>
+                <p className="text-right text-white/80">
+                  Outstanding {formatSignedGbp(row.owedPence)}
+                </p>
+                <div className="text-right">
+                  {row.owedPence > 0 ? (
+                    <form action="/admin/payments/new/submit" method="post">
+                      <input type="hidden" name="playerId" value={row.playerId} />
+                      <input
+                        type="hidden"
+                        name="seasonId"
+                        value={defaultSeasonId ?? ""}
+                      />
+                      <input
+                        type="hidden"
+                        name="amountGbp"
+                        value={penceToPounds(row.owedPence)}
+                      />
+                      <input
+                        type="hidden"
+                        name="note"
+                        value="Full balance payment"
+                      />
+                      <button
+                        className="rounded-full border border-lime-300/40 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-lime-200 hover:border-lime-200"
+                        disabled={!defaultSeasonId}
+                      >
+                        Mark paid
+                      </button>
+                    </form>
+                  ) : (
+                    <span className="text-xs text-white/50">Settled</span>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-white/60">No paid or outstanding records yet.</p>
+          )}
+        </div>
       </section>
 
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
