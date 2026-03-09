@@ -31,6 +31,9 @@ export default async function PublicLayout({
             <Link className="hover:text-black" href="/all-time">
               All-time
             </Link>
+            <Link className="hover:text-black" href="/players">
+              Players
+            </Link>
             <Link className="hover:text-black" href="/league">
               League
             </Link>
