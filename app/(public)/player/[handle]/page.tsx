@@ -5,6 +5,7 @@ import { buildMonzoLink, formatSignedGbp } from "@/lib/money";
 import {
   getActiveSeason,
   getPlayerAllTimeStats,
+  type PlayerStats,
   getPlayerSeasonStats,
 } from "@/lib/stats";
 
@@ -138,9 +139,7 @@ function StatsPanel({
 }: {
   title: string;
   subtitle: string;
-  stats: Awaited<ReturnType<typeof getPlayerAllTimeStats>> extends { stats: infer T }
-    ? T
-    : never;
+  stats: PlayerStats;
 }) {
   return (
     <div className="rounded-[28px] border border-black/10 bg-white/80 p-6 shadow-sm">
