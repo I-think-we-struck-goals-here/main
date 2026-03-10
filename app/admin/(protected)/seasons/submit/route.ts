@@ -86,25 +86,37 @@ export const POST = async (request: Request) => {
     }
 
     const name = String(formData.get("name") ?? "").trim();
+    const slug = normalizeSlug(String(formData.get("slug") ?? ""));
     const startDate = parseDate(formData.get("startDate"));
     const endDate = parseDate(formData.get("endDate"));
 
-    if (!name) {
+    if (!name || !slug) {
       return redirectTo(request, "/admin/seasons?error=missing");
     }
 
-    await db
-      .update(seasons)
-      .set({
-        name,
-        startDate,
-        endDate,
-      })
-      .where(eq(seasons.id, seasonId));
+    try {
+      await db
+        .update(seasons)
+        .set({
+          name,
+          slug,
+          startDate,
+          endDate,
+        })
+        .where(eq(seasons.id, seasonId));
+    } catch (error) {
+      if (typeof error === "object" && error !== null && "code" in error) {
+        if ((error as { code?: string }).code === "23505") {
+          return redirectTo(request, "/admin/seasons?error=duplicate");
+        }
+      }
+      throw error;
+    }
 
     revalidatePath("/admin/seasons");
     revalidatePath("/");
     revalidatePath("/league");
+    revalidatePath("/season/[seasonSlug]");
     return redirectTo(request, "/admin/seasons?updated=details");
   }
 

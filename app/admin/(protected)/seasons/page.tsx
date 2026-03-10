@@ -160,7 +160,13 @@ export default async function AdminSeasonsPage({
                   name="name"
                   defaultValue={season.name}
                   placeholder="Season name"
-                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm md:col-span-2"
+                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm"
+                />
+                <input
+                  name="slug"
+                  defaultValue={season.slug}
+                  placeholder="Slug"
+                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-2 text-sm"
                 />
                 <input
                   name="startDate"

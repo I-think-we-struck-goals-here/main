@@ -176,31 +176,31 @@ export default async function OppositionPage({ searchParams }: OppositionPagePro
               />
             </div>
           </div>
-          <p className="rounded-full border border-black/10 bg-black/[0.03] px-4 py-2 text-xs uppercase tracking-[0.2em] text-black/45">
-            {selectedSeason.name}
-          </p>
-        </div>
-
-        {seasons.length > 1 ? (
-          <div className="mt-6 flex flex-wrap gap-2">
-            {seasons.map((season) => {
-              const isActive = season.id === selectedSeason.id;
-              return (
-                <Link
-                  key={season.id}
-                  href={buildSeasonHref(teamName, season.slug)}
-                  className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.2em] ${
-                    isActive
-                      ? "bg-black text-white"
-                      : "border border-black/10 bg-white text-black/60 hover:text-black"
-                  }`}
-                >
-                  {season.name}
-                </Link>
-              );
-            })}
+          <div className="flex flex-wrap justify-end gap-2">
+            {seasons.length > 1 ? (
+              seasons.map((season) => {
+                const isActive = season.id === selectedSeason.id;
+                return (
+                  <Link
+                    key={season.id}
+                    href={buildSeasonHref(teamName, season.slug)}
+                    className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.2em] ${
+                      isActive
+                        ? "bg-black text-white"
+                        : "border border-black/10 bg-white text-black/60 hover:text-black"
+                    }`}
+                  >
+                    {season.name}
+                  </Link>
+                );
+              })
+            ) : (
+              <p className="rounded-full border border-black/10 bg-black/[0.03] px-4 py-2 text-xs uppercase tracking-[0.2em] text-black/45">
+                {selectedSeason.name}
+              </p>
+            )}
           </div>
-        ) : null}
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

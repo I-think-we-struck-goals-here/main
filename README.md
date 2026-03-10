@@ -103,6 +103,17 @@ Dedicated summary page with all-time total paid amounts per player.
 
 Use this page to cross-check cumulative paid totals against external records.
 
+### `/admin/seasons`
+
+Primary season configuration screen.
+
+Season details editing should be done here, including:
+
+- season name
+- season slug
+- season dates
+- PlayFootball team/settings fields
+
 ## Public player analytics screens
 
 ### `/players`
