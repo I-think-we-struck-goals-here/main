@@ -4,6 +4,7 @@ import {
   buildTeamSeasonSummary,
   formatPlayFootballTeamName,
   getPlayFootballSnapshot,
+  normalizePlayFootballTeamName,
   type TeamSeasonSummary,
 } from "@/lib/playfootball";
 import { getActiveSeason, getSeasons } from "@/lib/stats";
@@ -33,6 +34,35 @@ const formatSigned = (value: number) => `${value >= 0 ? "+" : ""}${value}`;
 
 const buildSeasonHref = (team: string, seasonSlug: string) =>
   `/opposition?team=${encodeURIComponent(team)}&season=${encodeURIComponent(seasonSlug)}`;
+
+const resolveSnapshotTeamName = (
+  team: string,
+  snapshot: Awaited<ReturnType<typeof getPlayFootballSnapshot>>
+) => {
+  if (!snapshot) {
+    return formatPlayFootballTeamName(team);
+  }
+
+  const target = normalizePlayFootballTeamName(team);
+  const candidates = new Map<string, string>();
+
+  for (const row of snapshot.standings) {
+    candidates.set(normalizePlayFootballTeamName(row.team), formatPlayFootballTeamName(row.team));
+  }
+
+  for (const fixture of snapshot.fixtures) {
+    candidates.set(
+      normalizePlayFootballTeamName(fixture.home),
+      formatPlayFootballTeamName(fixture.home)
+    );
+    candidates.set(
+      normalizePlayFootballTeamName(fixture.away),
+      formatPlayFootballTeamName(fixture.away)
+    );
+  }
+
+  return candidates.get(target) ?? formatPlayFootballTeamName(team);
+};
 
 function SummaryCard({
   label,
@@ -117,7 +147,7 @@ export default async function OppositionPage({ searchParams }: OppositionPagePro
   }
 
   const activeTeams = snapshot.standings.map((row) => formatPlayFootballTeamName(row.team));
-  const teamName = formatPlayFootballTeamName(rawTeam);
+  const teamName = resolveSnapshotTeamName(rawTeam, snapshot);
   const { summary, results } = buildTeamSeasonSummary(snapshot.fixtures, teamName, {
     activeTeams,
     forfeitTeam: FORFEIT_TEAM,
@@ -135,24 +165,20 @@ export default async function OppositionPage({ searchParams }: OppositionPagePro
         <div className="mt-2 flex flex-wrap items-start justify-between gap-5">
           <div>
             <h1 className="text-3xl font-semibold text-black">{summary.team}</h1>
-            <p className="mt-2 max-w-2xl text-sm text-black/60">
-              Season results, form, and team output for {selectedSeason.name}.
-            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <DetailPill label="Win rate" value={formatPct(summary.winRate)} />
+              <DetailPill label="Draw rate" value={formatPct(summary.drawRate)} />
+              <DetailPill label="Loss rate" value={formatPct(summary.lossRate)} />
+              <DetailPill label="Goal diff" value={formatSigned(summary.goalDifference)} />
+              <DetailPill
+                label="Clean sheets"
+                value={`${summary.cleanSheets} (${formatPct(summary.cleanSheetRate)})`}
+              />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.2em]">
-            <Link
-              href="/"
-              className="rounded-full border border-black/10 bg-white px-4 py-2 text-black/60 hover:text-black"
-            >
-              Back home
-            </Link>
-            <Link
-              href={`/league?season=${selectedSeason.slug}`}
-              className="rounded-full border border-black/10 bg-white px-4 py-2 text-black/60 hover:text-black"
-            >
-              League page
-            </Link>
-          </div>
+          <p className="rounded-full border border-black/10 bg-black/[0.03] px-4 py-2 text-xs uppercase tracking-[0.2em] text-black/45">
+            {selectedSeason.name}
+          </p>
         </div>
 
         {seasons.length > 1 ? (
@@ -202,28 +228,9 @@ export default async function OppositionPage({ searchParams }: OppositionPagePro
 
       <section className="rounded-[32px] border border-black/10 bg-white/85 p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-black/40">Overview</p>
-            <h2 className="mt-1 text-2xl font-semibold text-black">What they look like this season</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <DetailPill label="Win rate" value={formatPct(summary.winRate)} />
-            <DetailPill label="Draw rate" value={formatPct(summary.drawRate)} />
-            <DetailPill label="Loss rate" value={formatPct(summary.lossRate)} />
-            <DetailPill label="Goal diff" value={formatSigned(summary.goalDifference)} />
-            <DetailPill label="Clean sheets" value={`${summary.cleanSheets} (${formatPct(summary.cleanSheetRate)})`} />
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-[32px] border border-black/10 bg-white/85 p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-black/40">Results</p>
-            <h2 className="mt-1 text-2xl font-semibold text-black">Every completed fixture</h2>
-          </div>
+          <p className="text-xs uppercase tracking-[0.3em] text-black/40">Results</p>
           <p className="text-xs uppercase tracking-[0.2em] text-black/40">
-            {selectedSeason.name}
+            {results.length} completed
           </p>
         </div>
 
