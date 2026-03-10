@@ -1,10 +1,7 @@
-import Link from "next/link";
-
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import {
-  filterFixturesForTeam,
   formatPlayFootballTeamName,
-  getFixtureOpponent,
+  getLatestCompletedRoundFixtures,
   getPlayFootballSnapshot,
   isPlayFootballTeam,
 } from "@/lib/playfootball";
@@ -45,7 +42,13 @@ export default async function LeaguePage({ searchParams }: LeaguePageProps) {
   ]);
 
   const standings = snapshot?.standings ?? [];
-  const fixtures = filterFixturesForTeam(snapshot?.fixtures ?? [], selectedSeason);
+  const activeTeams = standings.map((row) => formatPlayFootballTeamName(row.team));
+  const latestResults = getLatestCompletedRoundFixtures(snapshot?.fixtures ?? [], {
+    activeTeams,
+    forfeitTeam: "Call Now To Enter 01702 414079",
+    forfeitScore: [8, 0],
+  });
+  const latestRoundLabel = latestResults[0]?.dateLabel ?? null;
   const lastUpdated = snapshot?.fetchedAt
     ? new Date(snapshot.fetchedAt).toLocaleString("en-GB")
     : null;
@@ -138,45 +141,50 @@ export default async function LeaguePage({ searchParams }: LeaguePageProps) {
         </div>
         <div className="rounded-[28px] border border-black/10 bg-white/80 p-6 shadow-sm">
           <p className="text-xs uppercase tracking-[0.3em] text-black/40">
-            Fixtures
+            Latest results
           </p>
-          {fixtures.length ? (
+          {latestResults.length ? (
             <div className="mt-4 flex flex-col gap-3 text-sm text-black/70">
-              {fixtures.slice(0, 10).map((fixture) => {
-                const { opponent, venueLabel } = getFixtureOpponent(
-                  fixture,
-                  selectedSeason
-                );
+              {latestRoundLabel ? (
+                <p className="text-[11px] uppercase tracking-[0.22em] text-black/45">
+                  {latestRoundLabel}
+                </p>
+              ) : null}
+              {latestResults.map((fixture) => {
+                const homeName = formatPlayFootballTeamName(fixture.home);
+                const awayName = formatPlayFootballTeamName(fixture.away);
+                const homeTeam = isPlayFootballTeam(homeName, selectedSeason);
+                const awayTeam = isPlayFootballTeam(awayName, selectedSeason);
                 return (
-                  <Link
+                  <div
                     key={`${fixture.dateLabel}-${fixture.time}-${fixture.home}-${fixture.away}`}
-                    href={{
-                      pathname: "/opposition",
-                      query: {
-                        team: opponent,
-                        season: selectedSeason.slug,
-                      },
-                    }}
-                    className="rounded-2xl border border-black/5 bg-black/[0.02] p-3 transition hover:-translate-y-0.5 hover:border-black/15 hover:bg-black/[0.03]"
+                    className="rounded-2xl border border-black/5 bg-black/[0.02] p-3"
                   >
-                    <p className="text-xs uppercase tracking-[0.2em] text-black/50">
-                      {fixture.dateLabel} · {fixture.time}
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-black/45">
+                      {fixture.time}
                     </p>
-                    <p className="mt-2 text-sm font-semibold text-black">
-                      {opponent}
-                    </p>
-                    {venueLabel ? (
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-black/40">
-                        {venueLabel}
-                      </p>
-                    ) : null}
-                  </Link>
+                    <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                      <div className={`min-w-0 text-right text-sm font-semibold ${homeTeam ? "text-black" : "text-black/70"}`}>
+                        <span className={homeTeam ? "rounded-full bg-lime-200/70 px-2 py-1" : ""}>
+                          {homeName}
+                        </span>
+                      </div>
+                      <div className="rounded-full border border-black/10 bg-white px-3 py-1 text-sm font-semibold text-black">
+                        {fixture.scoreHome} - {fixture.scoreAway}
+                      </div>
+                      <div className={`min-w-0 text-sm font-semibold ${awayTeam ? "text-black" : "text-black/70"}`}>
+                        <span className={awayTeam ? "rounded-full bg-lime-200/70 px-2 py-1" : ""}>
+                          {awayName}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
           ) : (
             <p className="mt-4 text-sm text-black/60">
-              No upcoming fixtures for your team yet.
+              No completed matchweek results yet.
             </p>
           )}
           <p className="mt-4 text-xs text-black/50">

@@ -620,6 +620,48 @@ export const buildTeamResults = (
   return resultsByTeam;
 };
 
+export const getLatestCompletedRoundFixtures = (
+  fixtures: LeagueFixture[],
+  options: ResultsOptions = {}
+) => {
+  const includeFixture = createTeamFilter(options);
+  const completed = fixtures
+    .filter(includeFixture)
+    .filter((fixture) => fixture.scoreHome !== null && fixture.scoreAway !== null)
+    .map((fixture) => ({
+      fixture,
+      kickoffMs: getKickoffMs(fixture),
+      roundKey: fixture.kickoffAt
+        ? fixture.kickoffAt.slice(0, 10)
+        : fixture.dateLabel,
+    }))
+    .sort((a, b) => {
+      const aMs = a.kickoffMs ?? 0;
+      const bMs = b.kickoffMs ?? 0;
+      return bMs - aMs;
+    });
+
+  if (!completed.length) {
+    return [];
+  }
+
+  const latestRoundKey = completed[0].roundKey;
+
+  return completed
+    .filter((entry) => entry.roundKey === latestRoundKey)
+    .map((entry) => entry.fixture)
+    .sort((a, b) => {
+      const aMs = getKickoffMs(a) ?? 0;
+      const bMs = getKickoffMs(b) ?? 0;
+      if (aMs !== bMs) {
+        return aMs - bMs;
+      }
+      return formatPlayFootballTeamName(a.home).localeCompare(
+        formatPlayFootballTeamName(b.home)
+      );
+    });
+};
+
 export const buildTeamSeasonSummary = (
   fixtures: LeagueFixture[],
   teamName: string,

@@ -153,6 +153,14 @@ Shows for a selected opponent and season:
 
 It reuses the cached PlayFootball fixture snapshot already used on the home and league pages.
 
+### `/league`
+
+Public league page combines:
+
+- current PlayFootball standings
+- latest completed round of results across the league
+- season-scoped player leaderboard stats
+
 ## Database schema (high level)
 
 Defined in `db/schema.ts`:
