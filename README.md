@@ -63,6 +63,7 @@ Key behavior in `lib/stats.ts`:
 - `/players`
 - `/league`
 - `/money`
+- `/opposition`
 - `/season/[seasonSlug]`
 - `/player/[handle]`
 
@@ -125,6 +126,21 @@ Expanded individual player profile with:
 - all-time stats
 - owed balance context
 - team record and output metrics while that player was marked as played
+
+### `/opposition`
+
+Public opponent scouting page, usually reached by clicking a fixture card.
+
+Shows for a selected opponent and season:
+
+- full completed result list
+- win / draw / loss record
+- goals for / against
+- points per game
+- clean sheets
+- recent form
+
+It reuses the cached PlayFootball fixture snapshot already used on the home and league pages.
 
 ## Database schema (high level)
 

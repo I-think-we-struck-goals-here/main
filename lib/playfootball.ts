@@ -451,6 +451,39 @@ export type TeamResult = {
   kickoffAt: string | null;
 };
 
+export type TeamSeasonFixture = {
+  dateLabel: string;
+  time: string;
+  pitch: string | null;
+  opponent: string;
+  venueLabel: "Home" | "Away";
+  outcome: "W" | "D" | "L";
+  scored: number;
+  conceded: number;
+  kickoffAt: string | null;
+};
+
+export type TeamSeasonSummary = {
+  team: string;
+  games: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+  pointsPerGame: number;
+  winRate: number;
+  drawRate: number;
+  lossRate: number;
+  cleanSheets: number;
+  cleanSheetRate: number;
+  scoredPerGame: number;
+  concededPerGame: number;
+  form: Array<"W" | "D" | "L">;
+};
+
 export const getTeamAverages = (results: TeamResult[]) => {
   if (!results.length) {
     return null;
@@ -585,6 +618,107 @@ export const buildTeamResults = (
   }
 
   return resultsByTeam;
+};
+
+export const buildTeamSeasonSummary = (
+  fixtures: LeagueFixture[],
+  teamName: string,
+  options: ResultsOptions = {}
+) => {
+  const includeFixture = createTeamFilter(options);
+  const normalizedTeam = normalizeTeamName(teamName);
+
+  const results: TeamSeasonFixture[] = fixtures
+    .filter(includeFixture)
+    .filter((fixture) => {
+      const homeNorm = normalizeTeamName(fixture.home);
+      const awayNorm = normalizeTeamName(fixture.away);
+      return homeNorm === normalizedTeam || awayNorm === normalizedTeam;
+    })
+    .map((fixture) => {
+      const homeNorm = normalizeTeamName(fixture.home);
+      const isHome = homeNorm === normalizedTeam;
+      const scored = isHome ? fixture.scoreHome ?? 0 : fixture.scoreAway ?? 0;
+      const conceded = isHome ? fixture.scoreAway ?? 0 : fixture.scoreHome ?? 0;
+      const venueLabel: TeamSeasonFixture["venueLabel"] = isHome ? "Home" : "Away";
+      const outcome: TeamSeasonFixture["outcome"] =
+        scored > conceded ? "W" : scored < conceded ? "L" : "D";
+
+      return {
+        dateLabel: fixture.dateLabel,
+        time: fixture.time,
+        pitch: fixture.pitch,
+        opponent: formatPlayFootballTeamName(isHome ? fixture.away : fixture.home),
+        venueLabel,
+        outcome,
+        scored,
+        conceded,
+        kickoffAt: fixture.kickoffAt,
+      };
+    })
+    .sort((a, b) => {
+      const aMs = a.kickoffAt ? Date.parse(a.kickoffAt) : 0;
+      const bMs = b.kickoffAt ? Date.parse(b.kickoffAt) : 0;
+      return bMs - aMs;
+    });
+
+  const summary = results.reduce(
+    (acc, result) => {
+      acc.games += 1;
+      acc.goalsFor += result.scored;
+      acc.goalsAgainst += result.conceded;
+      if (result.outcome === "W") {
+        acc.wins += 1;
+        acc.points += 3;
+      } else if (result.outcome === "D") {
+        acc.draws += 1;
+        acc.points += 1;
+      } else {
+        acc.losses += 1;
+      }
+      if (result.conceded === 0) {
+        acc.cleanSheets += 1;
+      }
+      return acc;
+    },
+    {
+      games: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      points: 0,
+      cleanSheets: 0,
+    }
+  );
+
+  const games = summary.games;
+  const finalSummary: TeamSeasonSummary = {
+    team: formatPlayFootballTeamName(teamName),
+    games,
+    wins: summary.wins,
+    draws: summary.draws,
+    losses: summary.losses,
+    goalsFor: summary.goalsFor,
+    goalsAgainst: summary.goalsAgainst,
+    goalDifference: summary.goalsFor - summary.goalsAgainst,
+    points: summary.points,
+    pointsPerGame: games ? summary.points / games : 0,
+    winRate: games ? summary.wins / games : 0,
+    drawRate: games ? summary.draws / games : 0,
+    lossRate: games ? summary.losses / games : 0,
+    cleanSheets: summary.cleanSheets,
+    cleanSheetRate: games ? summary.cleanSheets / games : 0,
+    scoredPerGame: games ? summary.goalsFor / games : 0,
+    concededPerGame: games ? summary.goalsAgainst / games : 0,
+    form: results.slice(0, 5).map((result) => result.outcome),
+  };
+
+  return {
+    summary: finalSummary,
+    results,
+  };
 };
 
 export const computeTeamElo = (

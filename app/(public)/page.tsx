@@ -81,13 +81,18 @@ export default async function HomePage() {
       })
     : null;
 
-  const now = Date.now();
+  const snapshotTimeMs = playFootball?.fetchedAt
+    ? Date.parse(playFootball.fetchedAt)
+    : null;
   const upcomingFixtures = fixtures
     .filter((fixture) => {
       if (!fixture.kickoffAt) {
         return true;
       }
-      return Date.parse(fixture.kickoffAt) >= now;
+      if (snapshotTimeMs === null) {
+        return true;
+      }
+      return Date.parse(fixture.kickoffAt) >= snapshotTimeMs;
     })
     .slice(0, 5);
 
@@ -161,9 +166,16 @@ export default async function HomePage() {
                 const form = resultsByTeam.get(opponentNorm) ?? [];
                 const averages = getTeamAverages(form);
                 return (
-                  <div
+                  <Link
                     key={`${fixture.dateLabel}-${fixture.time}-${fixture.home}-${fixture.away}`}
-                    className="rounded-2xl border border-black/5 bg-black/[0.02] p-3"
+                    href={{
+                      pathname: "/opposition",
+                      query: {
+                        team: opponentName,
+                        season: activeSeason.slug,
+                      },
+                    }}
+                    className="rounded-2xl border border-black/5 bg-black/[0.02] p-3 transition hover:-translate-y-0.5 hover:border-black/15 hover:bg-black/[0.03]"
                   >
                     <p className="text-xs uppercase tracking-[0.2em] text-black/50">
                       {fixture.dateLabel} · {fixture.time}
@@ -197,7 +209,7 @@ export default async function HomePage() {
                         "Avg GF — · Avg GA —"
                       )}
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

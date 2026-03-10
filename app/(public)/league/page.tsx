@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import {
   filterFixturesForTeam,
@@ -146,9 +148,16 @@ export default async function LeaguePage({ searchParams }: LeaguePageProps) {
                   selectedSeason
                 );
                 return (
-                  <div
+                  <Link
                     key={`${fixture.dateLabel}-${fixture.time}-${fixture.home}-${fixture.away}`}
-                    className="rounded-2xl border border-black/5 bg-black/[0.02] p-3"
+                    href={{
+                      pathname: "/opposition",
+                      query: {
+                        team: opponent,
+                        season: selectedSeason.slug,
+                      },
+                    }}
+                    className="rounded-2xl border border-black/5 bg-black/[0.02] p-3 transition hover:-translate-y-0.5 hover:border-black/15 hover:bg-black/[0.03]"
                   >
                     <p className="text-xs uppercase tracking-[0.2em] text-black/50">
                       {fixture.dateLabel} · {fixture.time}
@@ -161,7 +170,7 @@ export default async function LeaguePage({ searchParams }: LeaguePageProps) {
                         {venueLabel}
                       </p>
                     ) : null}
-                  </div>
+                  </Link>
                 );
               })}
             </div>
