@@ -7,6 +7,19 @@ import { formatGbp } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
+const formatIsoDate = (value: Date | string | null) => {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return parsed.toISOString().slice(0, 10);
+};
+
 export default async function AdminPaymentTotalsPage() {
   const totalPaidPenceExpr = sql<number>`
     coalesce(sum((${payments.amountGbp})::numeric * 100), 0)::int
@@ -21,7 +34,7 @@ export default async function AdminPaymentTotalsPage() {
       isActive: players.isActive,
       totalPaidPence: totalPaidPenceExpr.mapWith(Number),
       paymentCount: paymentCountExpr.mapWith(Number),
-      lastPaidAt: sql<Date | null>`max(${payments.paidAt})`,
+      lastPaidAt: sql<Date | string | null>`max(${payments.paidAt})`,
     })
     .from(players)
     .leftJoin(payments, eq(players.id, payments.playerId))
@@ -68,31 +81,33 @@ export default async function AdminPaymentTotalsPage() {
         </div>
         <div className="mt-4 flex flex-col gap-3">
           {rows.length ? (
-            rows.map((row) => (
-              <div
-                key={row.playerId}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm"
-              >
-                <div className="flex flex-col">
-                  <span className="font-semibold text-white">{row.displayName}</span>
-                  <span className="text-xs text-white/60">
-                    @{row.handle}
-                    {row.isActive ? "" : " • inactive"}
-                  </span>
+            rows.map((row) => {
+              const lastPaidLabel = formatIsoDate(row.lastPaidAt);
+
+              return (
+                <div
+                  key={row.playerId}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-white">{row.displayName}</span>
+                    <span className="text-xs text-white/60">
+                      @{row.handle}
+                      {row.isActive ? "" : " • inactive"}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-base font-semibold text-white">
+                      {formatGbp(row.totalPaidPence)}
+                    </p>
+                    <p className="text-xs text-white/60">
+                      {row.paymentCount} payments
+                      {lastPaidLabel ? ` • last ${lastPaidLabel}` : ""}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-base font-semibold text-white">
-                    {formatGbp(row.totalPaidPence)}
-                  </p>
-                  <p className="text-xs text-white/60">
-                    {row.paymentCount} payments
-                    {row.lastPaidAt
-                      ? ` • last ${row.lastPaidAt.toISOString().slice(0, 10)}`
-                      : ""}
-                  </p>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white/60">
               No players found.

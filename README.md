@@ -78,7 +78,6 @@ Key behavior in `lib/stats.ts`:
 - `/admin/matches/[matchId]`
 - `/admin/payments/new` (primary operations screen)
 - `/admin/payments` (all-time totals by player)
-- `/admin/insights`
 
 ### API
 
@@ -121,6 +120,8 @@ Season details editing should be done here, including:
 Public player directory with:
 
 - season toggle and all-time toggle
+- breakdown cards ordered by appearances by default
+- sortable stats table ordered by appearances by default
 - appearances, goals, assists, goal involvements
 - per-game output metrics
 - team goals for / against while playing
@@ -144,6 +145,7 @@ Public opponent scouting page, usually reached by clicking a fixture card.
 
 Shows for a selected opponent and season:
 
+- season chips only for seasons where that opponent has completed results logged
 - full completed result list
 - win / draw / loss record
 - goals for / against
@@ -160,6 +162,15 @@ Public league page combines:
 - current PlayFootball standings
 - latest completed round of results across the league
 - season-scoped player leaderboard stats
+
+### `/stats`
+
+Public league stats page with:
+
+- Elo ratings for the current league table
+- Elo carry-over from stored prior-season PlayFootball results
+- mild recency weighting for recent results without resetting each season
+- detail toggle for win probability, expected points per game, and Elo delta
 
 ## Database schema (high level)
 
@@ -263,11 +274,12 @@ Before deploy:
 
 - Money and balance logic: `lib/stats.ts`, `lib/money.ts`
 - Player analytics logic: `lib/stats.ts`
-- Public players UI: `app/(public)/players/page.tsx`, `app/(public)/player/[handle]/page.tsx`
+- Public players UI: `app/(public)/players/page.tsx`, `components/SortablePlayerTable.tsx`, `app/(public)/player/[handle]/page.tsx`
 - Payment admin UI: `app/admin/(protected)/payments/new/page.tsx`
 - Payment summary UI: `app/admin/(protected)/payments/page.tsx`
 - Payment writes: `app/admin/(protected)/payments/new/submit/route.ts`
 - Auth and sessions: `lib/admin-auth.ts`, `app/admin/login/*`
+- PlayFootball opponent + Elo logic: `lib/playfootball.ts`, `app/(public)/opposition/page.tsx`, `app/(public)/stats/page.tsx`
 
 ## Update checklist (for future Codex sessions)
 

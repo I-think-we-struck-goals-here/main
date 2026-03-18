@@ -3,10 +3,11 @@ import {
   computeTeamElo,
   formatPlayFootballTeamName,
   getPlayFootballSnapshot,
+  getStoredPlayFootballSnapshots,
   isPlayFootballTeam,
   normalizePlayFootballTeamName,
 } from "@/lib/playfootball";
-import { getActiveSeason } from "@/lib/stats";
+import { getActiveSeason, getSeasons } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,10 @@ const outcomeStyles: Record<"W" | "D" | "L", string> = {
 };
 
 export default async function StatsPage() {
-  const activeSeason = await getActiveSeason();
+  const [activeSeason, seasons] = await Promise.all([
+    getActiveSeason(),
+    getSeasons(),
+  ]);
 
   if (!activeSeason) {
     return (
@@ -50,16 +54,29 @@ export default async function StatsPage() {
   const standings = snapshot.standings.map((row) =>
     formatPlayFootballTeamName(row.team)
   );
+  const storedSnapshots = await getStoredPlayFootballSnapshots(
+    seasons.map((season) => season.id)
+  );
+  storedSnapshots.set(activeSeason.id, snapshot);
+
+  const historicalFixtures = seasons.flatMap(
+    (season) => storedSnapshots.get(season.id)?.fixtures ?? []
+  );
+  const eloSeasonCount = seasons.filter((season) =>
+    storedSnapshots.has(season.id)
+  ).length;
   const resultsByTeam = buildTeamResults(snapshot.fixtures, {
     activeTeams: standings,
     forfeitTeam: FORFEIT_TEAM,
     forfeitScore: [8, 0],
   });
-  const eloByTeam = computeTeamElo(snapshot.fixtures, {
-    activeTeams: standings,
-    forfeitTeam: FORFEIT_TEAM,
-    forfeitScore: [8, 0],
-  });
+  const eloByTeam = computeTeamElo(
+    historicalFixtures.length ? historicalFixtures : snapshot.fixtures,
+    {
+      forfeitTeam: FORFEIT_TEAM,
+      forfeitScore: [8, 0],
+    }
+  );
 
   const activeSet = new Set(standings.map(normalizePlayFootballTeamName));
   const forfeitNorm = normalizePlayFootballTeamName(FORFEIT_TEAM);
@@ -91,9 +108,9 @@ export default async function StatsPage() {
         (fixture) => fixture.scoreHome === fixture.scoreAway
       ).length / includedFixtures.length
     : 0;
-  const ratingValues = Array.from(eloByTeam.values()).map(
-    (entry) => entry.rating
-  );
+  const ratingValues = standings
+    .map((team) => eloByTeam.get(normalizePlayFootballTeamName(team))?.rating)
+    .filter((value): value is number => value !== undefined);
   const averageRating = ratingValues.length
     ? ratingValues.reduce((total, value) => total + value, 0) /
       ratingValues.length
@@ -166,6 +183,11 @@ export default async function StatsPage() {
             </label>
           </div>
         </div>
+        <p className="text-sm text-black/60">
+          Ratings carry over from stored prior-season results across {eloSeasonCount}{" "}
+          season{eloSeasonCount === 1 ? "" : "s"}, with recent matches weighted
+          slightly more heavily.
+        </p>
         <div className="grid gap-2 text-sm peer-checked:[&_.elo-details]:flex">
           <div className="grid grid-cols-[1.6fr_72px_56px] items-center text-[10px] uppercase tracking-[0.2em] text-black/40 md:grid-cols-[1.5fr_80px_80px_1fr]">
             <span>Team</span>
@@ -245,10 +267,13 @@ export default async function StatsPage() {
           })}
         </div>
         <p className="text-xs text-black/50">
-          Elo updates from every recorded result (K=20), ignoring 8-0 forfeits vs
-          "{FORFEIT_TEAM}". Toggle details shows win probability versus the
-          league average, expected points per game, and the difference from
-          actual points.
+          Elo updates from all stored results (base K=20), ignoring 8-0 forfeits vs
+          {' "'}
+          {FORFEIT_TEAM}
+          {'". Matches in the last 60 days use a 1.3x weight, and matches in the last 180 days use a 1.15x weight.'}{" "}
+          Toggle details shows win probability versus the
+          current league average, expected points per game, and the difference
+          from actual points.
         </p>
       </section>
     </div>

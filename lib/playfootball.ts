@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { externalLeagueSnapshots, playfootballFixturesLog } from "@/db/schema";
@@ -519,6 +519,12 @@ type ResultsOptions = {
   forfeitScore?: [number, number];
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const RECENT_FORM_WINDOW_MS = 60 * DAY_MS;
+const MID_FORM_WINDOW_MS = 180 * DAY_MS;
+const RECENT_FORM_WEIGHT = 1.3;
+const MID_FORM_WEIGHT = 1.15;
+
 const createTeamFilter = (options: ResultsOptions = {}) => {
   const activeSet = options.activeTeams
     ? new Set(options.activeTeams.map(normalizeTeamName))
@@ -565,6 +571,22 @@ const getKickoffMs = (fixture: LeagueFixture) => {
   }
   const parsed = Date.parse(fixture.kickoffAt);
   return Number.isNaN(parsed) ? null : parsed;
+};
+
+const getRecencyWeight = (fixture: LeagueFixture, nowMs: number) => {
+  const kickoffMs = getKickoffMs(fixture);
+  if (kickoffMs === null) {
+    return 1;
+  }
+
+  const ageMs = Math.max(0, nowMs - kickoffMs);
+  if (ageMs <= RECENT_FORM_WINDOW_MS) {
+    return RECENT_FORM_WEIGHT;
+  }
+  if (ageMs <= MID_FORM_WINDOW_MS) {
+    return MID_FORM_WEIGHT;
+  }
+  return 1;
 };
 
 export const buildTeamResults = (
@@ -769,6 +791,7 @@ export const computeTeamElo = (
 ) => {
   const includeFixture = createTeamFilter(options);
   const ratings = new Map<string, TeamElo>();
+  const nowMs = Date.now();
 
   const completed = fixtures
     .filter(includeFixture)
@@ -806,7 +829,8 @@ export const computeTeamElo = (
     const actualHome =
       homeScore > awayScore ? 1 : homeScore < awayScore ? 0 : 0.5;
     const kFactor = 20;
-    const delta = kFactor * margin * (actualHome - expectedHome);
+    const recencyWeight = getRecencyWeight(fixture, nowMs);
+    const delta = kFactor * margin * recencyWeight * (actualHome - expectedHome);
 
     home.rating += delta;
     away.rating -= delta;
@@ -841,6 +865,42 @@ const normalizeSnapshot = (
     standings: payload.standings ?? [],
     fetchedAt: snapshot.fetchedAt.toISOString(),
   };
+};
+
+export const getStoredPlayFootballSnapshots = async (
+  seasonIds?: number[]
+): Promise<Map<number, PlayFootballSnapshot>> => {
+  if (seasonIds && seasonIds.length === 0) {
+    return new Map();
+  }
+
+  const snapshotRows =
+    seasonIds && seasonIds.length
+      ? await db
+          .select()
+          .from(externalLeagueSnapshots)
+          .where(inArray(externalLeagueSnapshots.seasonId, seasonIds))
+          .orderBy(
+            desc(externalLeagueSnapshots.fetchedAt),
+            desc(externalLeagueSnapshots.id)
+          )
+      : await db
+          .select()
+          .from(externalLeagueSnapshots)
+          .orderBy(
+            desc(externalLeagueSnapshots.fetchedAt),
+            desc(externalLeagueSnapshots.id)
+          );
+
+  const snapshots = new Map<number, PlayFootballSnapshot>();
+  for (const snapshot of snapshotRows) {
+    if (snapshot.status !== "ok" || snapshots.has(snapshot.seasonId)) {
+      continue;
+    }
+    snapshots.set(snapshot.seasonId, normalizeSnapshot(snapshot));
+  }
+
+  return snapshots;
 };
 
 const getFixtureMergeKey = (fixture: LeagueFixture) => {

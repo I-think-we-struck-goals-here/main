@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import SortablePlayerTable from "@/components/SortablePlayerTable";
 import { getPlayerAnalyticsRows, getSeasons } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -16,14 +17,14 @@ const formatRate = (value: number) => value.toFixed(1);
 const formatPct = (value: number) => `${Math.round(value * 100)}%`;
 const formatSigned = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(1)}`;
 
-const comparePlayers = (
+const comparePlayersByAppearances = (
   a: Awaited<ReturnType<typeof getPlayerAnalyticsRows>>[number],
   b: Awaited<ReturnType<typeof getPlayerAnalyticsRows>>[number]
 ) =>
+  b.gamesPlayed - a.gamesPlayed ||
   b.goalContributions - a.goalContributions ||
   b.goals - a.goals ||
   b.assists - a.assists ||
-  b.gamesPlayed - a.gamesPlayed ||
   a.displayName.localeCompare(b.displayName);
 
 const buildScopeHref = (seasonSlug: string) =>
@@ -52,7 +53,7 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
   const selectedScopeSlug = selectedSeason?.slug ?? "all";
   const rows = (await getPlayerAnalyticsRows(selectedSeason?.id))
     .filter((row) => row.gamesPlayed > 0)
-    .sort(comparePlayers);
+    .sort(comparePlayersByAppearances);
 
   const title = selectedSeason ? selectedSeason.name : "All-time";
   const summaryRows = rows.filter((row) => row.gamesPlayed > 0);
@@ -160,7 +161,7 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
             <h2 className="mt-1 text-2xl font-semibold text-black">Every player</h2>
           </div>
           <p className="text-xs text-black/45">
-            Sorted by goal involvements, then goals, then assists.
+            Sorted by appearances, then goal involvements, then goals.
           </p>
         </div>
 
@@ -236,6 +237,20 @@ export default async function PlayersPage({ searchParams }: PlayersPageProps) {
             </Link>
           ))}
         </div>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-black/40">Table</p>
+            <h2 className="mt-1 text-2xl font-semibold text-black">Sortable player stats</h2>
+          </div>
+          <p className="text-xs text-black/45">
+            Default sort: appearances. Click any column to reorder.
+          </p>
+        </div>
+
+        <SortablePlayerTable rows={rows} />
       </section>
     </div>
   );

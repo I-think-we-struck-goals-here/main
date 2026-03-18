@@ -4,6 +4,7 @@ import {
   buildTeamSeasonSummary,
   formatPlayFootballTeamName,
   getPlayFootballSnapshot,
+  getStoredPlayFootballSnapshots,
   normalizePlayFootballTeamName,
   type TeamSeasonSummary,
 } from "@/lib/playfootball";
@@ -148,6 +149,30 @@ export default async function OppositionPage({ searchParams }: OppositionPagePro
 
   const activeTeams = snapshot.standings.map((row) => formatPlayFootballTeamName(row.team));
   const teamName = resolveSnapshotTeamName(rawTeam, snapshot);
+  const storedSnapshots = await getStoredPlayFootballSnapshots(seasons.map((season) => season.id));
+  storedSnapshots.set(selectedSeason.id, snapshot);
+
+  const availableSeasons = seasons.filter((season) => {
+    const seasonSnapshot = storedSnapshots.get(season.id);
+    if (!seasonSnapshot) {
+      return false;
+    }
+
+    const seasonActiveTeams = seasonSnapshot.standings.map((row) =>
+      formatPlayFootballTeamName(row.team)
+    );
+    const seasonSummary = buildTeamSeasonSummary(seasonSnapshot.fixtures, teamName, {
+      activeTeams: seasonActiveTeams,
+      forfeitTeam: FORFEIT_TEAM,
+      forfeitScore: [8, 0],
+    });
+
+    return seasonSummary.results.length > 0;
+  });
+  const selectedSeasonHasResults = availableSeasons.some(
+    (season) => season.id === selectedSeason.id
+  );
+
   const { summary, results } = buildTeamSeasonSummary(snapshot.fixtures, teamName, {
     activeTeams,
     forfeitTeam: FORFEIT_TEAM,
@@ -177,8 +202,13 @@ export default async function OppositionPage({ searchParams }: OppositionPagePro
             </div>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            {seasons.length > 1 ? (
-              seasons.map((season) => {
+            {!selectedSeasonHasResults ? (
+              <p className="rounded-full border border-black/10 bg-black/[0.03] px-4 py-2 text-xs uppercase tracking-[0.2em] text-black/45">
+                {selectedSeason.name}
+              </p>
+            ) : null}
+            {availableSeasons.length > 1 ? (
+              availableSeasons.map((season) => {
                 const isActive = season.id === selectedSeason.id;
                 return (
                   <Link
@@ -194,11 +224,20 @@ export default async function OppositionPage({ searchParams }: OppositionPagePro
                   </Link>
                 );
               })
-            ) : (
-              <p className="rounded-full border border-black/10 bg-black/[0.03] px-4 py-2 text-xs uppercase tracking-[0.2em] text-black/45">
-                {selectedSeason.name}
-              </p>
-            )}
+            ) : availableSeasons.length === 1 ? (
+              availableSeasons[0].id === selectedSeason.id ? (
+                <p className="rounded-full border border-black/10 bg-black/[0.03] px-4 py-2 text-xs uppercase tracking-[0.2em] text-black/45">
+                  {availableSeasons[0].name}
+                </p>
+              ) : (
+                <Link
+                  href={buildSeasonHref(teamName, availableSeasons[0].slug)}
+                  className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs uppercase tracking-[0.2em] text-black/60 hover:text-black"
+                >
+                  {availableSeasons[0].name}
+                </Link>
+              )
+            ) : null}
           </div>
         </div>
       </section>
