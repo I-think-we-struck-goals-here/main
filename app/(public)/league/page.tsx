@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import LeaderboardPanel from "@/components/LeaderboardPanel";
 import {
   formatPlayFootballTeamName,
@@ -110,18 +112,28 @@ export default async function LeaguePage({ searchParams }: LeaguePageProps) {
               </div>
               {standings.map((row) => {
                 const isTeam = isPlayFootballTeam(row.team, selectedSeason);
+                const teamName = formatPlayFootballTeamName(row.team);
                 return (
-                  <div
+                  <Link
                     key={row.team}
+                    href={{
+                      pathname: "/opposition",
+                      query: {
+                        team: teamName,
+                        season: selectedSeason.slug,
+                      },
+                    }}
                     className={`grid grid-cols-[24px_1fr_32px_32px_32px_40px] items-center rounded-xl px-2 py-2 ${
-                      isTeam ? "bg-lime-200/70 text-black" : "text-black/70"
+                      isTeam
+                        ? "bg-lime-200/70 text-black hover:bg-lime-200/85"
+                        : "text-black/70 hover:bg-black/[0.03] hover:text-black"
                     }`}
                   >
                     <span className="text-[11px] font-semibold">
                       {row.position}
                     </span>
                     <span className="text-xs font-semibold">
-                      {formatPlayFootballTeamName(row.team)}
+                      {teamName}
                     </span>
                     <span className="text-right text-xs">{row.played}</span>
                     <span className="text-right text-xs">{row.goalDiff}</span>
@@ -129,7 +141,7 @@ export default async function LeaguePage({ searchParams }: LeaguePageProps) {
                     <span className="text-right text-xs font-semibold">
                       {row.points}
                     </span>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
