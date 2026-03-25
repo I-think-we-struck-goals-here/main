@@ -266,14 +266,14 @@ export default async function HomePage() {
           </p>
           <div className="mt-4 flex flex-col gap-3">
             {mostOwed.map((player) => (
-              <div key={player.playerId} className="flex justify-between">
+              <div key={player.playerId} className="flex items-center gap-4">
                 <Link
                   href={`/player/${player.handle}`}
-                  className="text-sm font-semibold text-black hover:underline"
+                  className="min-w-0 flex-1 text-sm font-semibold text-black hover:underline"
                 >
-                  {player.displayName}
+                  <span className="block truncate">{player.displayName}</span>
                 </Link>
-                <span className="text-sm text-black/70">
+                <span className="w-20 shrink-0 text-right text-sm tabular-nums text-black/70">
                   {formatSignedGbp(player.owedPence)}
                 </span>
               </div>
