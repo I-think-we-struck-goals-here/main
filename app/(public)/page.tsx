@@ -117,12 +117,13 @@ export default async function HomePage() {
           </div>
           {standings.length ? (
             <div className="mt-4 grid gap-2 text-xs">
-              <div className="grid grid-cols-[24px_1fr_32px_32px_32px_40px] items-center text-[10px] uppercase tracking-[0.2em] text-black/50">
+              <div className="grid grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_32px_40px] items-center text-[10px] uppercase tracking-[0.2em] text-black/50">
                 <span>#</span>
                 <span>Team</span>
                 <span className="text-right">P</span>
-                <span className="text-right">GD</span>
                 <span className="text-right">GF</span>
+                <span className="text-right">GA</span>
+                <span className="text-right">GD</span>
                 <span className="text-right">Pts</span>
               </div>
               {standings.map((row) => {
@@ -138,7 +139,7 @@ export default async function HomePage() {
                         season: activeSeason.slug,
                       },
                     }}
-                    className={`grid grid-cols-[24px_1fr_32px_32px_32px_40px] items-center rounded-xl px-2 py-2 ${
+                    className={`grid grid-cols-[24px_minmax(0,1fr)_28px_28px_28px_32px_40px] items-center rounded-xl px-2 py-2 ${
                       isTeam
                         ? "bg-lime-200/70 text-black hover:bg-lime-200/85"
                         : "text-black/70 hover:bg-black/[0.03] hover:text-black"
@@ -147,12 +148,13 @@ export default async function HomePage() {
                     <span className="text-[11px] font-semibold">
                       {row.position}
                     </span>
-                    <span className="text-xs font-semibold">
+                    <span className="min-w-0 truncate text-xs font-semibold">
                       {teamName}
                     </span>
                     <span className="text-right text-xs">{row.played}</span>
-                    <span className="text-right text-xs">{row.goalDiff}</span>
                     <span className="text-right text-xs">{row.goalsFor}</span>
+                    <span className="text-right text-xs">{row.goalsAgainst}</span>
+                    <span className="text-right text-xs">{row.goalDiff}</span>
                     <span className="text-right text-xs font-semibold">
                       {row.points}
                     </span>

@@ -38,7 +38,7 @@ export default async function PublicLayout({
               League
             </Link>
             <Link className="hover:text-black" href="/stats">
-              Stats
+              ELO
             </Link>
             <Link className="hover:text-black" href="/admin/login">
               Admin
