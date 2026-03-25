@@ -11,7 +11,11 @@ import {
   normalizePlayFootballTeamName,
   buildTeamResults,
 } from "@/lib/playfootball";
-import { getActiveSeason, getSeasonLeaderboard } from "@/lib/stats";
+import {
+  getActiveSeason,
+  getOutstandingBalances,
+  getSeasonLeaderboard,
+} from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
 
@@ -43,8 +47,9 @@ export default async function HomePage() {
     );
   }
 
-  const [leaderboard, playFootball] = await Promise.all([
+  const [leaderboard, mostOwedRows, playFootball] = await Promise.all([
     getSeasonLeaderboard(activeSeason.id),
+    getOutstandingBalances(),
     getPlayFootballSnapshot(activeSeason),
   ]);
 
@@ -54,7 +59,7 @@ export default async function HomePage() {
   const topAssisters = [...leaderboard]
     .sort((a, b) => b.assists - a.assists)
     .slice(0, 3);
-  const mostOwed = [...leaderboard]
+  const mostOwed = [...mostOwedRows]
     .sort((a, b) => b.owedPence - a.owedPence)
     .slice(0, 3);
 
